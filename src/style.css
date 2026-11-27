@@ -444,7 +444,7 @@
     transform: scale(1.2);
   }
 
-  &.found .shape {
+  & .shape-found {
     filter: url(#marker-found);
     opacity: 0.7;
   }

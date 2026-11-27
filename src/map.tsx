@@ -298,7 +298,8 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
         </filter>
       </defs>
       {ordered.map((location) => {
-        const classes = ["marker", stateOf(location), location === selected && "selected", !isShown(location) && location !== selected && "hidden-marker"];
+        const state = stateOf(location);
+        const classes = ["marker", state, location === selected && "selected", !isShown(location) && location !== selected && "hidden-marker"];
 
         return (
           <g
@@ -316,7 +317,8 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
           >
             <g transform={markerScale}>
               <circle class="ring" r={markerSize / 2 + 3} />
-              <KindShape class="shape" kind={location.kind} size={markerSize} />
+              {/* The state class sits on the shape itself: Chromium does not always restyle it when only the marker's class changes. */}
+              <KindShape class={`shape shape-${state}`} kind={location.kind} size={markerSize} />
             </g>
           </g>
         );
