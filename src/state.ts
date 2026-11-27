@@ -1,6 +1,6 @@
 import { batch, computed, signal } from "@preact/signals";
 
-import { locations, orderedLocations, type FlameLocation, type LocationKind } from "./locations.ts";
+import { flameLocations, locations, orderedLocations, type LocationKind, type MapLocation } from "./locations.ts";
 import { readKnowledge } from "./save.ts";
 import { flyTo, toMapX, toMapY, view } from "./viewport.ts";
 
@@ -23,15 +23,18 @@ function readStoredSave() {
 }
 
 export const foundIds = signal<ReadonlySet<number> | null>(readStoredSave());
-export const selectedLocation = signal<FlameLocation | null>(null);
+export const selectedLocation = signal<MapLocation | null>(null);
 export const errorMessage = signal("");
+// The path of a save the desktop app found on its own. A save the player picks or drops has none.
+export const detectedSavePath = signal<string | null>(null);
 export const listMode = signal<ListMode>("all");
 export const visibleKinds = signal<Record<LocationKind, boolean>>({
   shrine: true,
   sanctum: true,
+  spire: true,
 });
 
-export function stateOf(location: FlameLocation): LocationState {
+export function stateOf(location: MapLocation): LocationState {
   const ids = foundIds.value;
   if (!ids) {
     return "unknown";
@@ -40,15 +43,17 @@ export function stateOf(location: FlameLocation): LocationState {
   return ids.has(location.knowledgeId) ? "found" : "missing";
 }
 
-export const isShown = (location: FlameLocation) => visibleKinds.value[location.kind] && (listMode.value === "all" || stateOf(location) !== "found");
+export const isShown = (location: MapLocation) => visibleKinds.value[location.kind] && (listMode.value === "all" || stateOf(location) !== "found");
 
 export const shownLocations = computed(() => orderedLocations.filter(isShown));
 
 export const stepLocations = computed(() => shownLocations.value.filter((location) => stateOf(location) !== "found"));
 
-export const foundCount = computed(() => locations.filter((location) => stateOf(location) === "found").length);
+export const foundFlameCount = computed(() => flameLocations.filter((location) => stateOf(location) === "found").length);
 
-export function selectLocation(location: FlameLocation | null, fly: boolean) {
+export const foundSpireCount = computed(() => locations.filter((location) => location.kind === "spire" && stateOf(location) === "found").length);
+
+export function selectLocation(location: MapLocation | null, fly: boolean) {
   selectedLocation.value = location;
 
   if (fly && location) {
@@ -74,10 +79,16 @@ export function stepBy(direction: 1 | -1) {
 }
 
 export async function loadSave(file: File) {
+  detectedSavePath.value = null;
+  await loadSaveBytes(async () => new Uint8Array(await file.arrayBuffer()));
+}
+
+// Takes a reader, so a save that cannot be read shows its error the same way as a damaged save.
+export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
   errorMessage.value = "";
 
   try {
-    const knowledgeIds = readKnowledge(new Uint8Array(await file.arrayBuffer()));
+    const knowledgeIds = readKnowledge(await read());
     const ids = new Set(locations.map((location) => location.knowledgeId).filter((id) => knowledgeIds.has(id)));
 
     batch(() => {
@@ -96,7 +107,10 @@ export async function loadSave(file: File) {
 }
 
 export function forgetSave() {
-  foundIds.value = null;
+  batch(() => {
+    foundIds.value = null;
+    detectedSavePath.value = null;
+  });
 
   try {
     localStorage.removeItem(foundStorageKey);

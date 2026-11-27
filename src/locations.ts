@@ -1,8 +1,8 @@
-export const kinds = ["shrine", "sanctum"] as const;
+export const kinds = ["shrine", "sanctum", "spire"] as const;
 
 export type LocationKind = (typeof kinds)[number];
 
-export type FlameLocation = {
+export type MapLocation = {
   readonly region: string;
   readonly kind: LocationKind;
   readonly number: number;
@@ -13,7 +13,9 @@ export type FlameLocation = {
 };
 
 // The game resource index holds these values. "east" and "north" are in metres on the world map.
-export const locations: readonly FlameLocation[] = [
+// A spire's knowledge id is the first one its fast travel marker unlocks when the spire is activated.
+// Old saves from before version 1.0 hold it too, unlike the other ids of the marker.
+export const locations: readonly MapLocation[] = [
   {
     region: "Springlands",
     kind: "shrine",
@@ -626,9 +628,86 @@ export const locations: readonly FlameLocation[] = [
     north: 4136,
     altitude: 896,
   },
+  {
+    region: "Springlands",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 3976707756,
+    east: 3508,
+    north: 1982,
+    altitude: 1047,
+  },
+  {
+    region: "Low Meadows",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 3859989218,
+    east: 4911,
+    north: 1627,
+    altitude: 862,
+  },
+  {
+    region: "Revelwood",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 1559870974,
+    east: 3807,
+    north: 3645,
+    altitude: 975,
+  },
+  {
+    region: "Blackmire",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 2867992476,
+    east: 3413,
+    north: 5560,
+    altitude: 848,
+  },
+  {
+    region: "Nomad Highlands",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 923286397,
+    east: 6768,
+    north: 3787,
+    altitude: 990,
+  },
+  {
+    region: "Kindlewastes",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 3605729000,
+    east: 8402,
+    north: 2493,
+    altitude: 1058,
+  },
+  {
+    region: "Albaneve Summits",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 44169957,
+    east: 7453,
+    north: 4919,
+    altitude: 1339,
+  },
+  {
+    region: "Veilwater Basin",
+    kind: "spire",
+    number: 1,
+    knowledgeId: 3726514941,
+    east: 4738,
+    north: 5556,
+    altitude: 849,
+  },
 ];
 
-export const regions = [...new Set(locations.map((location) => location.region))];
+// The order of the regions in the list. Low Meadows and Blackmire have a spire but no flames.
+export const regions = ["Springlands", "Low Meadows", "Revelwood", "Blackmire", "Nomad Highlands", "Kindlewastes", "Albaneve Summits", "Veilwater Basin"];
+
+export const isFlame = (location: MapLocation) => location.kind !== "spire";
+
+export const flameLocations = locations.filter(isFlame);
 
 export const orderedLocations = locations.toSorted(
   (first, second) =>
@@ -640,6 +719,9 @@ export const locationsOfRegion = (region: string) => locations.filter((location)
 export const kindLabels: Record<LocationKind, string> = {
   shrine: "Shrine",
   sanctum: "Sanctum",
+  spire: "Ancient Spire",
 };
 
-export const shortName = (location: FlameLocation) => `${kindLabels[location.kind]} ${String(location.number).padStart(2, "0")}`;
+// Each region has one spire, so a spire has no number in its name.
+export const shortName = (location: MapLocation) =>
+  location.kind === "spire" ? kindLabels.spire : `${kindLabels[location.kind]} ${String(location.number).padStart(2, "0")}`;

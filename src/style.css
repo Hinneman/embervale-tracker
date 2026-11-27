@@ -372,6 +372,27 @@
   pointer-events: none;
 }
 
+.region-border {
+  fill: none;
+  stroke: var(--marker-label);
+  stroke-width: 1.5px;
+  stroke-opacity: 0.55;
+  stroke-dasharray: 6 4;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.spire-body {
+  fill: #9fe3dc;
+  stroke: var(--marker-edge);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+.spire-tip {
+  fill: #ffffff;
+}
+
 .marker {
   cursor: pointer;
 

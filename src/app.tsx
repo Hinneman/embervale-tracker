@@ -4,13 +4,17 @@ import { useEffect } from "preact/hooks";
 import flameIconUrl from "./assets/flame-shrine.png";
 import githubDarkUrl from "./assets/github-dark.svg";
 import githubWhiteUrl from "./assets/github-white.svg";
-import { locations, shortName, type FlameLocation, type LocationKind } from "./locations.ts";
+import { detectedSaves, isDesktop, loadDetectedSave, saveLabel } from "./desktop.ts";
+import { KindIcon } from "./icons.tsx";
+import { flameLocations, locations, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { MapView } from "./map.tsx";
 import {
+  detectedSavePath,
   errorMessage,
   forgetSave,
-  foundCount,
+  foundFlameCount,
   foundIds,
+  foundSpireCount,
   listMode,
   loadSave,
   pickSaveFile,
@@ -42,7 +46,48 @@ const kindToggles: { kind: LocationKind; label: string }[] = [
     kind: "sanctum",
     label: "Sanctums",
   },
+  {
+    kind: "spire",
+    label: "Spires",
+  },
 ];
+
+const spireCount = locations.length - flameLocations.length;
+
+// The Windows app lists the character saves it finds in the Steam and local save folders.
+function SavePicker() {
+  const saves = detectedSaves.value;
+  if (!isDesktop || saves.length === 0) {
+    return null;
+  }
+
+  const path = detectedSavePath.value;
+
+  return (
+    <select
+      class="btn btn-glass btn-sm"
+      aria-label="Character save"
+      value={path ?? ""}
+      onChange={(event) => {
+        const save = saves.find((candidate) => candidate.path === event.currentTarget.value);
+        if (save) {
+          void loadDetectedSave(save);
+        }
+      }}
+    >
+      {path === null && (
+        <option value="" disabled>
+          {foundIds.value === null ? "Select a character" : "Save from a file"}
+        </option>
+      )}
+      {saves.map((save) => (
+        <option key={save.path} value={save.path} title={save.path}>
+          {saveLabel(save, saves)}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function TopBar() {
   const hasSave = foundIds.value !== null;
@@ -56,8 +101,13 @@ function TopBar() {
       <div class="flex flex-wrap items-center gap-2">
         <span class="status tabular-nums">
           <span class={`dot ${hasSave ? "dot-found" : ""}`} />
-          {hasSave ? `${foundCount} / ${locations.length} lit` : `${locations.length} flames`}
+          {hasSave ? `${foundFlameCount} / ${flameLocations.length} lit` : `${flameLocations.length} flames`}
         </span>
+        <span class="status tabular-nums">
+          <span class={`dot ${hasSave ? "dot-found" : ""}`} />
+          {hasSave ? `${foundSpireCount} / ${spireCount} spires` : `${spireCount} spires`}
+        </span>
+        <SavePicker />
         {hasSave ? (
           <button class="btn btn-glass btn-sm" onClick={forgetSave}>
             Reset loaded save
@@ -98,8 +148,8 @@ function SaveHelp() {
       </p>
       <ul class="mb-2 grid list-disc gap-1.5 pl-4">
         <li>
-          <strong class="text-primary">Steam Cloud on (default):</strong> <code>&lt;Steam folder&gt;\userdata\&lt;YOUR_STEAM_ID&gt;\1203620</code>, or download
-          it from your{" "}
+          <strong class="text-primary">Steam Cloud on (default):</strong> <code>&lt;Steam folder&gt;\userdata\&lt;YOUR_STEAM_ID&gt;\1203620\remote</code>, or
+          download it from your{" "}
           <a href="https://store.steampowered.com/account/remotestorageapp/?appid=1203620" target="_blank" rel="noreferrer">
             Steam Cloud storage
           </a>
@@ -116,13 +166,13 @@ function SaveHelp() {
   );
 }
 
-function LocationRow({ location }: { location: FlameLocation }) {
+function LocationRow({ location }: { location: MapLocation }) {
   const state = stateOf(location);
 
   return (
     <li>
       <button class="menu-item" aria-current={selectedLocation.value === location} onClick={() => selectLocation(location, true)}>
-        <img class={`size-4.5 ${state === "found" ? "opacity-60 grayscale" : ""}`} src={flameIconUrl} alt="" />
+        <KindIcon kind={location.kind} class={`size-4.5 ${state === "found" ? "opacity-60 grayscale" : ""}`} />
         <span class="font-medium">{shortName(location)}</span>
         {state !== "unknown" && <span class={`dot dot-${state}`} aria-label={state} />}
       </button>
@@ -149,7 +199,7 @@ function Filters() {
           </button>
         ))}
       </div>
-      <div class="grid grid-cols-2 gap-1.5" role="group" aria-label="Types">
+      <div class="grid grid-cols-3 gap-1.5" role="group" aria-label="Types">
         {kindToggles.map(({ kind, label }) => (
           <button
             key={kind}
@@ -185,7 +235,7 @@ function Sidebar() {
         )}
         {rows.length === 0 ? (
           <p class="px-4 py-6 text-[13px] leading-4.5 text-muted">
-            {showsMissing ? "Nothing missing here. Every flame is lit." : "Turn on Shrines or Sanctums to see locations."}
+            {showsMissing ? "Nothing missing here. Every flame is lit and every spire is active." : "Turn on Shrines, Sanctums or Spires to see locations."}
           </p>
         ) : (
           <div class="p-1.5">

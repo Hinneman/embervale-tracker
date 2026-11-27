@@ -6,7 +6,7 @@ A map of the Flame Shrines in Enshrouded. Drop a `characterN.ksd` save file on t
 
 Where the save files are depends on whether Steam Cloud is on for Enshrouded. To check, right-click Enshrouded in your Steam library and select **Properties**.
 
-- **Steam Cloud on (default):** open the Steam install folder (usually `C:\Program Files (x86)\Steam`; Steam shows it under **Steam > Settings > Storage**). Then go to `userdata\<YOUR_STEAM_ID>\1203620`. You can also download the file from your [Steam Cloud storage for Enshrouded](https://store.steampowered.com/account/remotestorageapp/?appid=1203620). You must be logged in to Steam to see this page.
+- **Steam Cloud on (default):** open the Steam install folder (usually `C:\Program Files (x86)\Steam`; Steam shows it under **Steam > Settings > Storage**). Then go to `userdata\<YOUR_STEAM_ID>\1203620\remote`. You can also download the file from your [Steam Cloud storage for Enshrouded](https://store.steampowered.com/account/remotestorageapp/?appid=1203620). You must be logged in to Steam to see this page.
 - **Steam Cloud off:** paste `%userprofile%\Saved Games\keen games\Enshrouded` into the Windows Start menu or the File Explorer address bar.
 
 In that folder, select a `characterN.ksd` file.
@@ -23,6 +23,34 @@ bun run dev
 ```
 
 Other scripts: `bun run build`, `bun test`, `bun run check`, `bun run format`.
+
+## Game data
+
+The locations and region borders come from the game files, which [kfc-parser](https://github.com/Brabb3l/kfc-parser) unpacks to JSON:
+
+```sh
+kfc-parser unpack -g <Enshrouded folder> -o <output folder>
+```
+
+- **Flame shrines, sanctums and Ancient Spires** (`src/locations.ts`): their positions and knowledge ids are in the world's `SceneResource`. A spire uses the first knowledge id that its fast travel marker unlocks.
+- **Region borders** (`src/regions.ts`): generated from the world's biome map, a 1280 × 1280 grid with 8 m cells:
+
+  ```sh
+  bun scripts/generate-regions.ts <output folder>/BiomeMapResource/509feadb-4c60-425f-9c7c-deeefd9b6920_6287e034_0.json
+  ```
+
+## Windows app
+
+The [Windows workflow](.github/workflows/windows.yml) wraps the page in a [Tauri](https://tauri.app) window and builds an installer and a standalone `.exe`. It runs on every tag, and you can start it by hand from the Actions tab. Players need nothing else installed: the app uses WebView2, which ships with Windows 10 and 11.
+
+To build it yourself, install [Rust](https://rustup.rs), then run:
+
+```sh
+bun run tauri dev    # opens the app window with live reload
+bun run tauri build  # writes the installer to src-tauri/target/release/bundle/nsis
+```
+
+The app finds your character saves on its own. It lists the `characterN.ksd` files in each Steam account's `userdata\<id>\1203620\remote` folder and in `Saved Games\keen games\Enshrouded`, loads the newest one, and loads it again when the game saves. It can read only those files and the ones you select or drop on it.
 
 ## Docker
 

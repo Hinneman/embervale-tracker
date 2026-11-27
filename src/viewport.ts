@@ -1,6 +1,6 @@
 import { computed, signal } from "@preact/signals";
 
-import { locations, type FlameLocation } from "./locations.ts";
+import { locations, type MapLocation } from "./locations.ts";
 
 // The wiki map covers 0 to 10240 m on both axes, with north at the top.
 export const mapSize = 10240;
@@ -51,7 +51,7 @@ export function setView(next: View) {
   };
 }
 
-export function fit(targets: readonly FlameLocation[], padding: number): View {
+export function fit(targets: readonly MapLocation[], padding: number): View {
   const eastValues = targets.map((location) => location.east);
   const northValues = targets.map((location) => location.north);
   const [westEdge, eastEdge] = [Math.min(...eastValues), Math.max(...eastValues)];

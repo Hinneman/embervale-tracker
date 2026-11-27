@@ -2,9 +2,10 @@ import { useSignal, type Signal } from "@preact/signals";
 import type { RefObject, TargetedKeyboardEvent, TargetedPointerEvent, TargetedWheelEvent } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
-import flameIconUrl from "./assets/flame-shrine.png";
 import mapImageUrl from "./assets/map.webp";
-import { locations, locationsOfRegion, regions, shortName, type FlameLocation } from "./locations.ts";
+import { KindShape } from "./icons.tsx";
+import { isFlame, locations, locationsOfRegion, regions, shortName, type MapLocation } from "./locations.ts";
+import { regionBorders } from "./regions.ts";
 import { foundIds, isShown, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
 import {
   clampWidth,
@@ -27,7 +28,7 @@ import {
 } from "./viewport.ts";
 
 type Hover = {
-  location: FlameLocation;
+  location: MapLocation;
   clientX: number;
   clientY: number;
 };
@@ -214,18 +215,37 @@ function Tooltip({ hover, frameRef }: { hover: Signal<Hover | null>; frameRef: R
   );
 }
 
+// One SVG path for all borders, as [east, north] pairs turned into map coordinates.
+const borderPath = regionBorders
+  .map((points) => {
+    const commands: string[] = [];
+    for (let index = 0; index < points.length; index += 2) {
+      commands.push(`${index === 0 ? "M" : "L"}${toMapX(points[index]!)} ${toMapY(points[index + 1]!)}`);
+    }
+    return commands.join("");
+  })
+  .join("");
+
+function RegionBorders() {
+  // non-scaling-stroke keeps the line width the same at every zoom level.
+  return <path class="region-border" d={borderPath} vector-effect="non-scaling-stroke" />;
+}
+
 function RegionLabels() {
   return (
     <g>
       {regions.map((region) => {
-        const regionLocations = locationsOfRegion(region);
+        // The label sits in the middle of the region's flames. A region with only a spire puts it above the spire marker.
+        const flames = locationsOfRegion(region).filter(isFlame);
+        const regionLocations = flames.length ? flames : locationsOfRegion(region);
         const centerEast = regionLocations.reduce((sum, location) => sum + location.east, 0) / regionLocations.length;
         const centerNorth = regionLocations.reduce((sum, location) => sum + location.north, 0) / regionLocations.length;
+        const labelY = flames.length ? 4 : -markerSize;
 
         return (
           <g key={region} transform={`translate(${toMapX(centerEast)} ${toMapY(centerNorth)})`}>
             <g transform={markerScale}>
-              <text class="region-label" text-anchor="middle" y={4}>
+              <text class="region-label" text-anchor="middle" y={labelY}>
                 {region}
               </text>
             </g>
@@ -245,7 +265,7 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
     ...(selected ? [selected] : []),
   ];
 
-  const updateHover = (location: FlameLocation, event: TargetedPointerEvent<SVGGElement>) => {
+  const updateHover = (location: MapLocation, event: TargetedPointerEvent<SVGGElement>) => {
     if (event.pointerType === "mouse") {
       hover.value = {
         location,
@@ -286,7 +306,7 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
           >
             <g transform={markerScale}>
               <circle class="ring" r={markerSize / 2 + 3} />
-              <image class="shape" href={flameIconUrl} x={-markerSize / 2} y={-markerSize / 2} width={markerSize} height={markerSize} />
+              <KindShape class="shape" kind={location.kind} size={markerSize} />
             </g>
           </g>
         );
@@ -399,7 +419,7 @@ export function MapView() {
       <svg
         ref={svgRef}
         role="img"
-        aria-label="Flame shrines and sanctums on the Embervale map"
+        aria-label="Flame shrines, sanctums and Ancient Spires on the Embervale map"
         viewBox={viewBox}
         class={`absolute inset-0 block h-full w-full touch-none select-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
         onWheel={handleWheel}
@@ -410,6 +430,7 @@ export function MapView() {
         }}
       >
         <image href={mapImageUrl} x={0} y={0} width={mapSize} height={mapSize} preserveAspectRatio="none" />
+        <RegionBorders />
         <RegionLabels />
         <Markers hover={hover} moved={moved} />
       </svg>
@@ -424,7 +445,7 @@ export function MapView() {
             <path d="M3 8h10" />
           </svg>
         </button>
-        <button aria-label="Show all flames" class={zoomButtonClass} onClick={() => flyTo(homeView())}>
+        <button aria-label="Show all locations" class={zoomButtonClass} onClick={() => flyTo(homeView())}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />
           </svg>

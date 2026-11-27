@@ -1,3 +1,6 @@
 dist
 bun.lock
 src/assets
+src/regions.ts
+src-tauri/target
+src-tauri/gen

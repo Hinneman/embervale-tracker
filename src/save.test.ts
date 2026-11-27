@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 
-import { locations } from "./locations.ts";
+import { flameLocations, locations } from "./locations.ts";
 import { readKnowledge } from "./save.ts";
 
 const fixtures = new URL("fixtures/", import.meta.url);
@@ -14,17 +14,27 @@ const expectedFoundIds = [
   3447418605, 3477110730, 3694994425, 3729720625, 3835884090, 3900914039, 3961375235, 4124619577, 4269520231, 4287852732,
 ];
 
+// The character in fixtures/character0.ksd has activated all 8 Ancient Spires.
+const expectedSpireIds = [44169957, 923286397, 1559870974, 2867992476, 3605729000, 3726514941, 3859989218, 3976707756];
+
+const foundIn = (knowledgeIds: Set<number>, targets: typeof locations) =>
+  targets
+    .map((location) => location.knowledgeId)
+    .filter((knowledgeId) => knowledgeIds.has(knowledgeId))
+    .toSorted((first, second) => first - second);
+
 describe("readKnowledge", () => {
   test("CharacterSave", async () => {
     const save = await readFile(new URL("character0.ksd", fixtures));
 
-    const knowledgeIds = readKnowledge(save);
-    const foundIds = locations
-      .map((location) => location.knowledgeId)
-      .filter((knowledgeId) => knowledgeIds.has(knowledgeId))
-      .toSorted((first, second) => first - second);
+    expect(foundIn(readKnowledge(save), flameLocations)).toEqual(expectedFoundIds);
+  });
 
-    expect(foundIds).toEqual(expectedFoundIds);
+  test("CharacterSaveSpires", async () => {
+    const save = await readFile(new URL("character0.ksd", fixtures));
+    const spires = locations.filter((location) => location.kind === "spire");
+
+    expect(foundIn(readKnowledge(save), spires)).toEqual(expectedSpireIds);
   });
 
   test("NotASave", () => {
