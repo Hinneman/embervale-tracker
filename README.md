@@ -6,7 +6,11 @@ Embervale Tracker is based on [enshrouded-flames-finder](https://github.com/quan
 
 ## Why does this project exist?
 
-Some Steam achievements, such as Spark of the Springlands, ask you to visit every Flame Shrine in a region. They are tedious to complete because the in-game map shows visited and unvisited Flame Shrines with the same icon. Embervale Tracker marks the ones you have found, so you can see which ones you still have to visit.
+Some Steam achievements, such as Spark of the Veilwater Basin, ask you to find every Flame Shrine and Flame Sanctum in a region:
+
+![The Steam achievement Spark of the Veilwater Basin: "Find all flame shrines and sanctums in the Veilwater Basin." 0.5% of players have it.](docs/spark-of-the-veilwater-basin.png)
+
+They are tedious to complete because the in-game map shows visited and unvisited Flame Shrines and Flame Sanctums with the same icon. Embervale Tracker marks the ones you have found, so you can see which ones you still have to visit.
 
 ## Where to find the character save
 
