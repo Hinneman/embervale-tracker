@@ -1,7 +1,7 @@
 [package]
 name = "embervale-tracker"
 version = "0.1.0"
-description = "Shows which Flame Shrines, Sanctums and Ancient Spires you are missing in Enshrouded"
+description = "Shows which Flame Shrines and Sanctums you are missing in Enshrouded"
 license = "Apache-2.0"
 edition = "2021"
 
@@ -15,6 +15,7 @@ serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
+windows-sys = { version = "0.61", features = ["Win32_System_Com", "Win32_UI_Shell"] }
 
 [profile.release]
 codegen-units = 1

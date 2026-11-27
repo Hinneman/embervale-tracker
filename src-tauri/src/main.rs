@@ -18,6 +18,25 @@ struct SaveFile {
     modified: u64,
 }
 
+// Keeps the folders that exist, and each folder only once, also when it is reached by more than one path,
+// such as ~/.steam/steam, which links to Steam's own folder.
+fn distinct_dirs(dirs: impl IntoIterator<Item = PathBuf>) -> Vec<PathBuf> {
+    let mut seen = Vec::new();
+    let mut distinct = Vec::new();
+
+    for dir in dirs {
+        let Ok(real) = dir.canonicalize() else {
+            continue;
+        };
+        if !seen.contains(&real) {
+            seen.push(real);
+            distinct.push(dir);
+        }
+    }
+
+    distinct
+}
+
 #[cfg(windows)]
 fn registry_steam_dir() -> Option<PathBuf> {
     use winreg::{enums::HKEY_CURRENT_USER, RegKey};
@@ -27,23 +46,109 @@ fn registry_steam_dir() -> Option<PathBuf> {
     Some(PathBuf::from(path))
 }
 
-#[cfg(not(windows))]
-fn registry_steam_dir() -> Option<PathBuf> {
-    None
+#[cfg(windows)]
+fn steam_candidates() -> Vec<PathBuf> {
+    registry_steam_dir().into_iter().chain([PathBuf::from("C:\\Program Files (x86)\\Steam")]).collect()
 }
 
-fn steam_dir() -> Option<PathBuf> {
-    registry_steam_dir()
-        .into_iter()
-        .chain([PathBuf::from("C:\\Program Files (x86)\\Steam")])
-        .find(|dir| dir.join("userdata").is_dir())
+// Steam installed from the distribution's packages, and Steam from Flathub.
+#[cfg(target_os = "linux")]
+fn steam_candidates() -> Vec<PathBuf> {
+    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else {
+        return Vec::new();
+    };
+
+    vec![
+        home.join(".local/share/Steam"),
+        home.join(".steam/steam"),
+        home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam"),
+    ]
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn steam_candidates() -> Vec<PathBuf> {
+    Vec::new()
+}
+
+fn steam_dirs() -> Vec<PathBuf> {
+    distinct_dirs(steam_candidates().into_iter().filter(|dir| dir.join("userdata").is_dir()))
+}
+
+// The Saved Games folder, which Windows lets the user move to another drive or into OneDrive.
+#[cfg(windows)]
+fn known_saved_games_dir() -> Option<PathBuf> {
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::System::Com::CoTaskMemFree;
+    use windows_sys::Win32::UI::Shell::{FOLDERID_SavedGames, SHGetKnownFolderPath, KF_FLAG_DEFAULT};
+
+    let mut path = std::ptr::null_mut();
+    // SAFETY: the out pointer is valid, and Windows allocates the string, which is freed below on success and failure.
+    let result = unsafe { SHGetKnownFolderPath(&FOLDERID_SavedGames, KF_FLAG_DEFAULT as _, std::ptr::null_mut(), &mut path) };
+
+    let folder = (result >= 0 && !path.is_null()).then(|| {
+        // SAFETY: on success the path is a null-terminated wide string.
+        let length = (0..).take_while(|&index| unsafe { *path.add(index) } != 0).count();
+        let wide = unsafe { std::slice::from_raw_parts(path, length) };
+        PathBuf::from(std::ffi::OsString::from_wide(wide))
+    });
+
+    unsafe { CoTaskMemFree(path as _) };
+    folder
+}
+
+#[cfg(windows)]
+fn saved_games_dir() -> Option<PathBuf> {
+    known_saved_games_dir().or_else(|| std::env::var_os("USERPROFILE").map(|profile| Path::new(&profile).join("Saved Games")))
+}
+
+#[cfg(windows)]
+fn local_save_dirs(_steam_dirs: &[PathBuf]) -> Vec<PathBuf> {
+    saved_games_dir().map(|dir| dir.join("keen games").join("Enshrouded")).into_iter().collect()
+}
+
+// The Steam libraries: Steam's own folder and the ones listed in libraryfolders.vdf, such as a second drive.
+#[cfg(target_os = "linux")]
+fn steam_libraries(steam: &Path) -> Vec<PathBuf> {
+    let mut libraries = vec![steam.to_path_buf()];
+
+    if let Ok(text) = std::fs::read_to_string(steam.join("steamapps").join("libraryfolders.vdf")) {
+        // A library line looks like: "path"		"/mnt/games/SteamLibrary"
+        for line in text.lines() {
+            let mut fields = line.split('"').filter(|field| !field.trim().is_empty());
+            if fields.next() == Some("path") {
+                if let Some(path) = fields.next() {
+                    libraries.push(PathBuf::from(path.replace("\\\\", "\\")));
+                }
+            }
+        }
+    }
+
+    libraries
+}
+
+// Under Proton, the game keeps its Saved Games folder in a Windows prefix in the library it is installed in.
+#[cfg(target_os = "linux")]
+fn local_save_dirs(steam_dirs: &[PathBuf]) -> Vec<PathBuf> {
+    let saves = steam_dirs.iter().flat_map(|steam| steam_libraries(steam)).map(|library| {
+        library
+            .join("steamapps/compatdata")
+            .join(STEAM_APP_ID)
+            .join("pfx/drive_c/users/steamuser/Saved Games/keen games/Enshrouded")
+    });
+    distinct_dirs(saves)
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn local_save_dirs(_steam_dirs: &[PathBuf]) -> Vec<PathBuf> {
+    Vec::new()
 }
 
 // The folders the game saves to: one per Steam account with Steam Cloud on, and one shared folder with it off.
 fn save_folders() -> Vec<(PathBuf, &'static str, Option<String>)> {
     let mut folders = Vec::new();
+    let steam_dirs = steam_dirs();
 
-    if let Some(steam) = steam_dir() {
+    for steam in &steam_dirs {
         if let Ok(accounts) = std::fs::read_dir(steam.join("userdata")) {
             for account in accounts.flatten() {
                 let remote = account.path().join(STEAM_APP_ID).join("remote");
@@ -54,8 +159,7 @@ fn save_folders() -> Vec<(PathBuf, &'static str, Option<String>)> {
         }
     }
 
-    if let Some(profile) = std::env::var_os("USERPROFILE") {
-        let local = Path::new(&profile).join("Saved Games").join("keen games").join("Enshrouded");
+    for local in local_save_dirs(&steam_dirs) {
         if local.is_dir() {
             folders.push((local, "local", None));
         }

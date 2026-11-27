@@ -22,7 +22,7 @@ type TauriGlobal = {
 
 const tauri = (window as { __TAURI__?: TauriGlobal }).__TAURI__;
 
-// True in the Windows app. The website has no access to the save folders.
+// True in the desktop app. The website has no access to the save folders.
 export const isDesktop = tauri !== undefined;
 
 export const detectedSaves = signal<readonly DetectedSave[]>([]);
@@ -150,7 +150,7 @@ export const sourceLabel = (save: DetectedSave, saves: readonly DetectedSave[]) 
   return steamAccounts.size > 1 ? `Steam ${save.steamAccount}` : "Steam";
 };
 
-// The Windows app runs the page in a webview, which ignores links that open a new tab.
+// The desktop app runs the page in a webview, which ignores links that open a new tab.
 // There, such links open in the system browser. In a normal browser this does nothing.
 export function routeExternalLinks() {
   if (!tauri) {
