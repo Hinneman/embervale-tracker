@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 
 import { flameLocations, locations } from "./locations.ts";
-import { readFog, readKnowledge } from "./save.ts";
+import { readCharacter, readFog, readKnowledge } from "./save.ts";
 
 const fixtures = new URL("fixtures/", import.meta.url);
 
@@ -48,12 +48,15 @@ describe("readKnowledge", () => {
   });
 });
 
-// Builds an SV2C save with one uncompressed block, laid out as readBlocks expects.
-function saveWithBlock(name: string, payload: Uint8Array): Uint8Array {
+// Builds an SV2C save with uncompressed blocks, laid out as readBlocks expects:
+// the header, the directory entries, the block names, then the blocks.
+function saveWithBlocks(blocks: Record<string, Uint8Array>): Uint8Array {
   const headerLength = 0x30;
   const entryLength = 20;
-  const blockOffset = headerLength + entryLength + name.length;
-  const save = new Uint8Array(blockOffset + 14 + payload.length);
+  const entries = Object.entries(blocks);
+  const namesOffset = headerLength + entryLength * entries.length;
+  const blocksOffset = namesOffset + entries.reduce((total, [name]) => total + name.length, 0);
+  const save = new Uint8Array(blocksOffset + entries.reduce((total, [, payload]) => total + 14 + payload.length, 0));
   const view = new DataView(save.buffer);
   const writeAscii = (offset: number, text: string) =>
     save.set(
@@ -63,16 +66,74 @@ function saveWithBlock(name: string, payload: Uint8Array): Uint8Array {
 
   writeAscii(0, "SV2C");
   view.setUint32(0x28, headerLength - 40, true);
-  view.setUint32(0x2c, 1, true);
-  view.setUint32(headerLength, entryLength, true);
-  view.setUint32(headerLength + 4, name.length, true);
-  view.setUint32(headerLength + 8, blockOffset, true);
-  view.setUint32(headerLength + 12, 14 + payload.length, true);
-  writeAscii(headerLength + entryLength, name);
-  writeAscii(blockOffset, "S2BH");
-  save.set(payload, blockOffset + 14);
+  view.setUint32(0x2c, entries.length, true);
+
+  let nameOffset = namesOffset;
+  let blockOffset = blocksOffset;
+  entries.forEach(([name, payload], blockIndex) => {
+    const entryOffset = headerLength + entryLength * blockIndex;
+    view.setUint32(entryOffset, nameOffset - entryOffset, true);
+    view.setUint32(entryOffset + 4, name.length, true);
+    view.setUint32(entryOffset + 8, blockOffset, true);
+    view.setUint32(entryOffset + 12, 14 + payload.length, true);
+    writeAscii(nameOffset, name);
+    writeAscii(blockOffset, "S2BH");
+    save.set(payload, blockOffset + 14);
+    nameOffset += name.length;
+    blockOffset += 14 + payload.length;
+  });
+
   return save;
 }
+
+const saveWithBlock = (name: string, payload: Uint8Array) => saveWithBlocks({ [name]: payload });
+
+function characterData(name: string): Uint8Array {
+  const bytes = new TextEncoder().encode(name);
+  const payload = new Uint8Array(9 + bytes.length + 4);
+  new DataView(payload.buffer).setUint32(5, bytes.length, true);
+  payload.set(bytes, 9);
+  return payload;
+}
+
+function playerCharacter(level: number): Uint8Array {
+  const payload = new Uint8Array(0x60);
+  new DataView(payload.buffer).setUint32(0x3a, level, true);
+  return payload;
+}
+
+describe("readCharacter", () => {
+  test("NameAndLevel", () => {
+    const save = saveWithBlocks({
+      character_data: characterData("Milana"),
+      player_character: playerCharacter(45),
+    });
+
+    expect(readCharacter(save)).toEqual({ name: "Milana", level: 45 });
+  });
+
+  test("NonAsciiName", () => {
+    expect(readCharacter(saveWithBlock("character_data", characterData("Åsa")))).toEqual({ name: "Åsa", level: null });
+  });
+
+  test("ImplausibleLevel", () => {
+    expect(readCharacter(saveWithBlock("player_character", playerCharacter(70000))).level).toBeNull();
+    expect(readCharacter(saveWithBlock("player_character", playerCharacter(0))).level).toBeNull();
+  });
+
+  test("DamagedNameLength", () => {
+    const payload = characterData("Nami");
+    new DataView(payload.buffer).setUint32(5, 500, true);
+
+    expect(readCharacter(saveWithBlock("character_data", payload)).name).toBeNull();
+  });
+
+  test("SaveWithoutCharacterBlocks", async () => {
+    const save = await readFile(new URL("character0.ksd", fixtures));
+
+    expect(readCharacter(save)).toEqual({ name: null, level: null });
+  });
+});
 
 describe("readFog", () => {
   test("SaveWithoutFog", async () => {

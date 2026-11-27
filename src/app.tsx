@@ -4,12 +4,11 @@ import { useEffect } from "preact/hooks";
 import flameIconUrl from "./assets/flame-shrine.png";
 import githubDarkUrl from "./assets/github-dark.svg";
 import githubWhiteUrl from "./assets/github-white.svg";
-import { detectedSaves, isDesktop, loadDetectedSave, saveLabel } from "./desktop.ts";
+import { CharacterButton, CharacterList } from "./characters.tsx";
 import { KindIcon } from "./icons.tsx";
 import { flameLocations, locations, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { MapView } from "./map.tsx";
 import {
-  detectedSavePath,
   errorMessage,
   forgetSave,
   foundFlameCount,
@@ -56,41 +55,6 @@ const kindToggles: { kind: LocationKind; label: string }[] = [
 
 const spireCount = locations.length - flameLocations.length;
 
-// The Windows app lists the character saves it finds in the Steam and local save folders.
-function SavePicker() {
-  const saves = detectedSaves.value;
-  if (!isDesktop || saves.length === 0) {
-    return null;
-  }
-
-  const path = detectedSavePath.value;
-
-  return (
-    <select
-      class="btn btn-glass btn-sm"
-      aria-label="Character save"
-      value={path ?? ""}
-      onChange={(event) => {
-        const save = saves.find((candidate) => candidate.path === event.currentTarget.value);
-        if (save) {
-          void loadDetectedSave(save);
-        }
-      }}
-    >
-      {path === null && (
-        <option value="" disabled>
-          {foundIds.value === null ? "Select a character" : "Save from a file"}
-        </option>
-      )}
-      {saves.map((save) => (
-        <option key={save.path} value={save.path} title={save.path}>
-          {saveLabel(save, saves)}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 function TopBar() {
   const hasSave = foundIds.value !== null;
 
@@ -109,7 +73,7 @@ function TopBar() {
           <span class={`dot ${hasSave ? "dot-found" : ""}`} />
           {hasSave ? `${foundSpireCount} / ${spireCount} spires` : `${spireCount} spires`}
         </span>
-        <SavePicker />
+        <CharacterButton />
         {hasSave ? (
           <button class="btn btn-glass btn-sm" onClick={forgetSave}>
             Reset loaded save
@@ -352,6 +316,7 @@ export function App() {
         </div>
         <Sidebar />
       </main>
+      <CharacterList />
       <Dropzone />
     </div>
   );

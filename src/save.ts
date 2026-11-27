@@ -51,6 +51,53 @@ export function readKnowledge(save: Uint8Array): Set<number> {
   return new Set(Array.from({ length: idCount }, (_, idIndex) => payloadView.getUint32(8 + 4 * idIndex, true)));
 }
 
+export type CharacterInfo = {
+  name: string | null;
+  level: number | null;
+};
+
+const maxNameLength = 64;
+// Levels outside this range mean the guessed offset does not hold for this save, so the level is left out.
+const maxPlausibleLevel = 100;
+const levelOffset = 0x3a;
+
+// The character_data payload holds the slot at byte 0, then a u32 name length at byte 5 and the UTF-8 name from byte 9.
+function readName(payload: Uint8Array): string | null {
+  if (payload.length < 9) {
+    return null;
+  }
+
+  const length = new DataView(payload.buffer, payload.byteOffset, payload.byteLength).getUint32(5, true);
+  if (length === 0 || length > maxNameLength || 9 + length > payload.length) {
+    return null;
+  }
+
+  const name = new TextDecoder().decode(payload.subarray(9, 9 + length)).trim();
+  return name || null;
+}
+
+// The level is a u32 at 0x3a of the player_character payload. This was inferred from saves, not documented.
+function readLevel(payload: Uint8Array): number | null {
+  if (payload.length < levelOffset + 4) {
+    return null;
+  }
+
+  const level = new DataView(payload.buffer, payload.byteOffset, payload.byteLength).getUint32(levelOffset, true);
+  return level >= 1 && level <= maxPlausibleLevel ? level : null;
+}
+
+// The name and level shown in the character list. Either is null when the save lacks it or it looks wrong.
+export function readCharacter(save: Uint8Array): CharacterInfo {
+  const blocks = readBlocks(save);
+  const characterData = blocks.get("character_data");
+  const playerCharacter = blocks.get("player_character");
+
+  return {
+    name: characterData ? readName(characterData()) : null,
+    level: playerCharacter ? readLevel(playerCharacter()) : null,
+  };
+}
+
 // The explored map: one byte per cell, from 0 (in fog) to 255 (explored), with soft edges in between.
 // Row 0 is the north edge of the world, unlike the game's biome map, where row 0 is the south edge.
 export type FogMap = {
