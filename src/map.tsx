@@ -10,6 +10,7 @@ import { fogImage, foundIds, isShown, selectedLocation, selectLocation, stateOf,
 import {
   clampWidth,
   flyTo,
+  frameSize,
   homeView,
   mapSize,
   markerScale,
@@ -39,6 +40,13 @@ type Point = {
 };
 
 type Gesture = { kind: "pan"; start: Point; startView: View } | { kind: "pinch"; startDistance: number; anchor: [number, number]; startView: View };
+
+// Sharper map tiles from the wiki, an 8 × 8 grid named "<column>_<row>.webp" with row 0 at the top.
+const tileUrls = import.meta.glob<string>("./assets/tiles/*.webp", { eager: true, query: "?url", import: "default" });
+const tileCount = 8;
+const tileSize = mapSize / tileCount;
+// The single overview image is 4096 px wide. The tiles take over once the screen shows more detail than it has.
+const overviewMetresPerPixel = mapSize / 4096;
 
 const markerSize = 24;
 const numberFormat = new Intl.NumberFormat("en");
@@ -227,6 +235,32 @@ const borderPath = regionBorders
 function RegionBorders() {
   // non-scaling-stroke keeps the line width the same at every zoom level.
   return <path class="region-border" d={borderPath} vector-effect="non-scaling-stroke" />;
+}
+
+// Draws only the tiles in view, and only when zoomed in past the overview image's detail.
+function DetailTiles() {
+  const { centerX, centerY, width } = view.value;
+  const frame = frameSize.value;
+  if ((width / frame.width) * devicePixelRatio > overviewMetresPerPixel) {
+    return null;
+  }
+
+  const height = (width * frame.height) / frame.width;
+  const toTile = (coordinate: number) => Math.min(tileCount - 1, Math.max(0, Math.floor(coordinate / tileSize)));
+  const tiles = [];
+
+  for (let column = toTile(centerX - width / 2); column <= toTile(centerX + width / 2); column++) {
+    for (let row = toTile(centerY - height / 2); row <= toTile(centerY + height / 2); row++) {
+      const url = tileUrls[`./assets/tiles/${column}_${row}.webp`];
+      if (url) {
+        tiles.push(
+          <image key={url} href={url} x={column * tileSize} y={row * tileSize} width={tileSize} height={tileSize} preserveAspectRatio="none" />,
+        );
+      }
+    }
+  }
+
+  return <g>{tiles}</g>;
 }
 
 // The player's own fog of war from the save: unexplored ground is dark, explored ground is clear.
@@ -439,6 +473,7 @@ export function MapView() {
         }}
       >
         <image href={mapImageUrl} x={0} y={0} width={mapSize} height={mapSize} preserveAspectRatio="none" />
+        <DetailTiles />
         <FogLayer />
         <RegionBorders />
         <RegionLabels />
