@@ -1,7 +1,7 @@
 [package]
-name = "flame-shrine-finder"
+name = "embervale-tracker"
 version = "0.1.0"
-description = "A map of the Flame Shrines in Enshrouded"
+description = "Shows which Flame Shrines, Sanctums and Ancient Spires you are missing in Enshrouded"
 license = "Apache-2.0"
 edition = "2021"
 

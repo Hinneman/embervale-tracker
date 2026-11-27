@@ -1,6 +1,8 @@
-# Flame Shrine Finder
+# Embervale Tracker
 
-A map of the Flame Shrines in Enshrouded. Drop a `characterN.ksd` save file on the page to see which shrines you have found and which ones you have yet to discover.
+A map of Embervale, the world of Enshrouded, with every Flame Shrine, Flame Sanctum and Ancient Spire and the borders of each region. Drop a `characterN.ksd` save file on the page to see which ones you have found and which ones you have yet to discover. The Windows app finds your saves on its own.
+
+Embervale Tracker is based on [enshrouded-flames-finder](https://github.com/quantumsheep/enshrouded-flames-finder) by quantumsheep, and is licensed under the same Apache License 2.0.
 
 ## Where to find the character save
 
@@ -55,8 +57,8 @@ The app finds your character saves on its own. It lists the `characterN.ksd` fil
 ## Docker
 
 ```sh
-docker build -t flame-shrine-finder .
-docker run -p 8080:80 flame-shrine-finder
+docker build -t embervale-tracker .
+docker run -p 8080:80 embervale-tracker
 ```
 
 ## License

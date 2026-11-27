@@ -96,7 +96,7 @@ function TopBar() {
     <header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 border-b border-line bg-sheet px-4 py-2.5">
       <div class="flex min-w-0 items-center gap-2.5">
         <img class="size-7.5 shrink-0" src={flameIconUrl} alt="" />
-        <h1 class="text-base font-semibold tracking-[-0.01em] text-primary">Enshrouded Flame Finder</h1>
+        <h1 class="text-base font-semibold tracking-[-0.01em] text-primary">Embervale Tracker</h1>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <span class="status tabular-nums">
@@ -123,7 +123,7 @@ function TopBar() {
         <SaveHelp />
         <a
           class="btn btn-ghost btn-sm btn-icon"
-          href="https://github.com/quantumsheep/enshrouded-flames-finder"
+          href="https://github.com/Hinneman/embervale-tracker"
           target="_blank"
           rel="noreferrer"
           aria-label="Source code on GitHub"

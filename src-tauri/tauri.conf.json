@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Flame Shrine Finder",
+  "productName": "Embervale Tracker",
   "version": "0.1.0",
-  "identifier": "io.github.quantumsheep.flame-shrine-finder",
+  "identifier": "io.github.hinneman.embervale-tracker",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Flame Shrine Finder",
+        "title": "Embervale Tracker",
         "width": 1280,
         "height": 800,
         "minWidth": 400,
