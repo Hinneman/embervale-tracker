@@ -3,7 +3,7 @@ import type { RefObject, TargetedKeyboardEvent, TargetedPointerEvent, TargetedWh
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
 import mapImageUrl from "./assets/map.webp";
-import { KindShape } from "./icons.tsx";
+import { isMuted, KindShape } from "./icons.tsx";
 import { isFlame, locations, locationsOfRegion, regions, shortName, type MapLocation } from "./locations.ts";
 import { regionBorders } from "./regions.ts";
 import { fogImage, foundIds, isShown, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
@@ -202,11 +202,9 @@ function Tooltip({ hover, frameRef }: { hover: Signal<Hover | null>; frameRef: R
   const state = stateOf(current.location);
 
   return (
-    <div
-      ref={tooltipRef}
-      class="floating pointer-events-none absolute z-2 grid gap-1 rounded-lg px-3 py-2 text-[13px] leading-4.5 font-medium whitespace-nowrap text-primary"
-    >
-      <small class="mono-caption">
+    <div ref={tooltipRef} class="card pointer-events-none absolute z-2 grid gap-0.5 px-3 py-2 text-[15px] leading-5 font-bold whitespace-nowrap text-primary">
+      <small class="eyebrow flex items-center gap-2">
+        {state !== "unknown" && <span class={`mark mark-${state} size-1.5!`} />}
         {current.location.region}
         {state === "unknown" ? "" : ` · ${state}`}
       </small>
@@ -285,15 +283,11 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
     }
   };
 
-  // SVG filters, because WebKit ignores CSS filter functions such as grayscale() on SVG elements.
+  // An SVG filter, because WebKit ignores CSS filter functions on SVG elements.
   return (
     <g>
       <defs>
         <filter id="marker-shadow">
-          <feDropShadow dy="1" stdDeviation="0.75" flood-opacity="0.6" />
-        </filter>
-        <filter id="marker-found">
-          <feColorMatrix type="saturate" values="0" />
           <feDropShadow dy="1" stdDeviation="0.75" flood-opacity="0.6" />
         </filter>
       </defs>
@@ -318,7 +312,12 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
             <g transform={markerScale}>
               <circle class="ring" r={markerSize / 2 + 3} />
               {/* The state class sits on the shape itself: Chromium does not always restyle it when only the marker's class changes. */}
-              <KindShape class={`shape shape-${state}`} kind={location.kind} size={markerSize} />
+              <KindShape
+                class={`shape shape-${isMuted(location.kind, state) ? "muted" : state}`}
+                kind={location.kind}
+                size={markerSize}
+                muted={isMuted(location.kind, state)}
+              />
             </g>
           </g>
         );
@@ -339,39 +338,37 @@ function Popover() {
   const isAlone = steps.length < 2 && position >= 0;
 
   return (
-    <div class="floating menu-in absolute bottom-3 left-3 z-3 grid w-[min(340px,calc(100%-24px))] gap-3 rounded-[18px] p-4">
+    <div class="card card-accent menu-in absolute bottom-3 left-3 z-3 grid w-[min(340px,calc(100%-24px))] gap-3 p-4">
       <div class="flex items-center justify-between gap-2">
-        <span class="mono-caption">{selected.region}</span>
-        <button class="btn btn-ghost btn-icon -my-1.5 -mr-2" aria-label="Close" onClick={() => selectLocation(null, false)}>
+        <span class="eyebrow">{selected.region}</span>
+        <button class="btn btn-quiet btn-icon -my-1.5 -mr-2" aria-label="Close" onClick={() => selectLocation(null, false)}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-2.5">
-        <h2 class="title text-primary">{shortName(selected)}</h2>
-        <span class="status">
-          <span class={`dot dot-${state}`} />
+        <h2 class="display text-[22px] leading-7">{shortName(selected)}</h2>
+        <span class="state-tag">
+          <span class={`mark ${state === "unknown" ? "" : `mark-${state}`}`} />
           {stateWords[state]}
         </span>
       </div>
-      <p class="mono-caption tabular-nums">
+      <p class="text-sm leading-5 text-muted tabular-nums">
         E {numberFormat.format(selected.east)} · N {numberFormat.format(selected.north)} · Alt {numberFormat.format(selected.altitude)} m
       </p>
-      <div class="flex items-center justify-between gap-2 pt-1">
-        <button class="btn btn-glass btn-sm" disabled={isAlone} onClick={() => stepBy(-1)}>
+      <div class="flex items-center justify-between gap-2 border-t border-line pt-3">
+        <button class="btn btn-outline" disabled={isAlone} onClick={() => stepBy(-1)}>
           Previous
         </button>
-        <span class="mono-label tabular-nums">{position >= 0 ? `${position + 1} / ${steps.length}` : ""}</span>
-        <button class="btn btn-action btn-sm" disabled={isAlone} onClick={() => stepBy(1)}>
+        <span class="eyebrow tabular-nums">{position >= 0 ? `${position + 1} / ${steps.length}` : ""}</span>
+        <button class="btn btn-primary" disabled={isAlone} onClick={() => stepBy(1)}>
           Next{foundIds.value ? " missing" : ""}
         </button>
       </div>
     </div>
   );
 }
-
-const zoomButtonClass = "btn btn-glass btn-icon";
 
 export function MapView() {
   const frameRef = useRef<HTMLElement>(null);
@@ -425,7 +422,7 @@ export function MapView() {
       ref={frameRef}
       tabIndex={0}
       aria-label="Map. Drag to pan. Use the plus and minus keys to zoom."
-      class="relative h-full overflow-hidden bg-frame focus-visible:shadow-[inset_0_0_0_2px_var(--text-muted)]"
+      class="relative h-full overflow-hidden bg-frame focus-visible:shadow-[inset_0_0_0_2px_var(--ember)]"
       onKeyDown={handleKeyDown}
     >
       <svg
@@ -447,18 +444,18 @@ export function MapView() {
         <RegionLabels />
         <Markers hover={hover} moved={moved} />
       </svg>
-      <div class="absolute top-3 right-3 grid gap-1.5" role="group" aria-label="Zoom">
-        <button aria-label="Zoom in" class={zoomButtonClass} onClick={() => zoomBy(0.6)}>
+      <div class="tool-stack absolute top-3 right-3" role="group" aria-label="Zoom">
+        <button aria-label="Zoom in" onClick={() => zoomBy(0.6)}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <path d="M8 3v10M3 8h10" />
           </svg>
         </button>
-        <button aria-label="Zoom out" class={zoomButtonClass} onClick={() => zoomBy(1 / 0.6)}>
+        <button aria-label="Zoom out" onClick={() => zoomBy(1 / 0.6)}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <path d="M3 8h10" />
           </svg>
         </button>
-        <button aria-label="Show all locations" class={zoomButtonClass} onClick={() => flyTo(homeView())}>
+        <button aria-label="Show all locations" onClick={() => flyTo(homeView())}>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />
           </svg>
@@ -466,7 +463,7 @@ export function MapView() {
       </div>
       <Tooltip hover={hover} frameRef={frameRef} />
       <Popover />
-      <div class="mono-caption absolute right-3 bottom-2.5 text-(--marker-label)! [text-shadow:0_1px_2px_var(--marker-edge)]">
+      <div class="eyebrow absolute right-3 bottom-2.5 text-(--marker-label)! [text-shadow:0_1px_2px_var(--marker-edge)]">
         Map{" "}
         <a class="underline" href="https://enshrouded.wiki.gg/" target="_blank" rel="noopener">
           Enshrouded Wiki
