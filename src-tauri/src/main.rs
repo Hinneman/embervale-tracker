@@ -123,8 +123,27 @@ fn read_save(path: String) -> Result<tauri::ipc::Response, String> {
         .map_err(|error| format!("The save could not be read: {error}"))
 }
 
+// WebView2 sometimes shows nothing but the page background until the window is resized,
+// although the page has rendered. Growing the window by one pixel and back makes it present the page.
+fn nudge_window(window: &tauri::Window) {
+    let is_normal = !window.is_maximized().unwrap_or(true) && !window.is_minimized().unwrap_or(true) && !window.is_fullscreen().unwrap_or(true);
+    if !is_normal {
+        return;
+    }
+
+    if let Ok(size) = window.inner_size() {
+        let _ = window.set_size(tauri::PhysicalSize::new(size.width + 1, size.height));
+        let _ = window.set_size(size);
+    }
+}
+
 fn main() {
     tauri::Builder::default()
+        .on_page_load(|webview, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                nudge_window(&webview.window());
+            }
+        })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![list_saves, read_save])
         .run(tauri::generate_context!())
