@@ -382,6 +382,10 @@
   pointer-events: none;
 }
 
+.fog-layer {
+  pointer-events: none;
+}
+
 .spire-body {
   fill: #9fe3dc;
   stroke: var(--marker-edge);

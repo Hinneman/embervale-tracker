@@ -1,6 +1,6 @@
 # Embervale Tracker
 
-A map of Embervale, the world of Enshrouded, with every Flame Shrine, Flame Sanctum and Ancient Spire and the borders of each region. Drop a `characterN.ksd` save file on the page to see which ones you have found and which ones you have yet to discover. The Windows app finds your saves on its own.
+A map of Embervale, the world of Enshrouded, with every Flame Shrine, Flame Sanctum and Ancient Spire and the borders of each region. Drop a `characterN.ksd` save file on the page to see which ones you have found and which ones you have yet to discover. The map shows your own fog of war from the save, and flames you have not found under the fog stay hidden until you choose to show them. The Windows app finds your saves on its own.
 
 Embervale Tracker is based on [enshrouded-flames-finder](https://github.com/quantumsheep/enshrouded-flames-finder) by quantumsheep, and is licensed under the same Apache License 2.0.
 

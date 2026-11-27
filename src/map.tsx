@@ -6,7 +6,7 @@ import mapImageUrl from "./assets/map.webp";
 import { KindShape } from "./icons.tsx";
 import { isFlame, locations, locationsOfRegion, regions, shortName, type MapLocation } from "./locations.ts";
 import { regionBorders } from "./regions.ts";
-import { foundIds, isShown, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
+import { fogImage, foundIds, isShown, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
 import {
   clampWidth,
   flyTo,
@@ -231,6 +231,16 @@ function RegionBorders() {
   return <path class="region-border" d={borderPath} vector-effect="non-scaling-stroke" />;
 }
 
+// The player's own fog of war from the save: unexplored ground is dark, explored ground is clear.
+function FogLayer() {
+  const image = fogImage.value;
+  if (!image) {
+    return null;
+  }
+
+  return <image class="fog-layer" href={image} x={0} y={0} width={mapSize} height={mapSize} preserveAspectRatio="none" />;
+}
+
 function RegionLabels() {
   return (
     <g>
@@ -430,6 +440,7 @@ export function MapView() {
         }}
       >
         <image href={mapImageUrl} x={0} y={0} width={mapSize} height={mapSize} preserveAspectRatio="none" />
+        <FogLayer />
         <RegionBorders />
         <RegionLabels />
         <Markers hover={hover} moved={moved} />

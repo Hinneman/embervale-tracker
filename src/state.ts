@@ -1,28 +1,56 @@
 import { batch, computed, signal } from "@preact/signals";
 
+import { fogImage as drawFogImage, exploredIds as findExploredIds } from "./fog.ts";
 import { flameLocations, locations, orderedLocations, type LocationKind, type MapLocation } from "./locations.ts";
-import { readKnowledge } from "./save.ts";
+import { readFog, readKnowledge } from "./save.ts";
 import { flyTo, toMapX, toMapY, view } from "./viewport.ts";
 
 export type LocationState = "unknown" | "found" | "missing";
 export type ListMode = "missing" | "all";
 
-const foundStorageKey = "found";
+// The loaded save stays in the browser, so it is there again on the next visit.
+const storageKeys = {
+  found: "found",
+  explored: "explored",
+  fogImage: "fogImage",
+};
 
-function readStoredSave() {
+function readStored(key: string): unknown {
   try {
-    const storedIds: unknown = JSON.parse(localStorage.getItem(foundStorageKey) ?? "null");
-    if (Array.isArray(storedIds)) {
-      return new Set(storedIds.filter((id) => typeof id === "number"));
-    }
+    return JSON.parse(localStorage.getItem(key) ?? "null");
   } catch {
     // Private windows and blocked storage throw here. The page then starts with no save.
+    return null;
   }
-
-  return null;
 }
 
-export const foundIds = signal<ReadonlySet<number> | null>(readStoredSave());
+function writeStored(key: string, value: unknown) {
+  try {
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch {
+    // Blocked or full storage only stops the save from loading again on the next visit.
+  }
+}
+
+const readStoredIds = (key: string) => {
+  const ids = readStored(key);
+  return Array.isArray(ids) ? new Set(ids.filter((id) => typeof id === "number")) : null;
+};
+
+const readStoredImage = () => {
+  const image = readStored(storageKeys.fogImage);
+  return typeof image === "string" && image.startsWith("data:image/png;") ? image : null;
+};
+
+export const foundIds = signal<ReadonlySet<number> | null>(readStoredIds(storageKeys.found));
+// The locations on explored ground, or null when the save holds no fog and everything counts as explored.
+export const exploredIds = signal<ReadonlySet<number> | null>(readStoredIds(storageKeys.explored));
+// The fog drawn as a PNG data URL, laid over the map. Null without fog.
+export const fogImage = signal<string | null>(readStoredImage());
 export const selectedLocation = signal<MapLocation | null>(null);
 export const errorMessage = signal("");
 // The path of a save the desktop app found on its own. A save the player picks or drops has none.
@@ -43,7 +71,19 @@ export function stateOf(location: MapLocation): LocationState {
   return ids.has(location.knowledgeId) ? "found" : "missing";
 }
 
-export const isShown = (location: MapLocation) => visibleKinds.value[location.kind] && (listMode.value === "all" || stateOf(location) !== "found");
+// Off by default: flames that are still missing on unexplored ground stay hidden, like in the game's fog.
+export const showUnexplored = signal(false);
+
+const isExplored = (location: MapLocation) => exploredIds.value === null || exploredIds.value.has(location.knowledgeId);
+
+// Spires always show, so the player knows where to head, and so do the flames already lit.
+const isRevealed = (location: MapLocation) => showUnexplored.value || location.kind === "spire" || stateOf(location) === "found" || isExplored(location);
+
+// The missing flames on unexplored ground, which stay hidden while showUnexplored is off.
+export const unexploredFlameCount = computed(() => flameLocations.filter((location) => stateOf(location) === "missing" && !isExplored(location)).length);
+
+export const isShown = (location: MapLocation) =>
+  visibleKinds.value[location.kind] && (listMode.value === "all" || stateOf(location) !== "found") && isRevealed(location);
 
 export const shownLocations = computed(() => orderedLocations.filter(isShown));
 
@@ -88,19 +128,23 @@ export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
   errorMessage.value = "";
 
   try {
-    const knowledgeIds = readKnowledge(await read());
+    const save = await read();
+    const knowledgeIds = readKnowledge(save);
     const ids = new Set(locations.map((location) => location.knowledgeId).filter((id) => knowledgeIds.has(id)));
+    const fog = readFog(save);
+    const explored = fog ? findExploredIds(fog, locations) : null;
+    const image = fog ? drawFogImage(fog) : null;
 
     batch(() => {
       foundIds.value = ids;
+      exploredIds.value = explored;
+      fogImage.value = image;
       selectedLocation.value = null;
     });
 
-    try {
-      localStorage.setItem(foundStorageKey, JSON.stringify([...ids]));
-    } catch {
-      // Blocked storage only stops the save from loading again on the next visit.
-    }
+    writeStored(storageKeys.found, [...ids]);
+    writeStored(storageKeys.explored, explored && [...explored]);
+    writeStored(storageKeys.fogImage, image);
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error);
   }
@@ -109,13 +153,13 @@ export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
 export function forgetSave() {
   batch(() => {
     foundIds.value = null;
+    exploredIds.value = null;
+    fogImage.value = null;
     detectedSavePath.value = null;
   });
 
-  try {
-    localStorage.removeItem(foundStorageKey);
-  } catch {
-    // Blocked storage holds no save to remove.
+  for (const key of Object.values(storageKeys)) {
+    writeStored(key, null);
   }
 }
 

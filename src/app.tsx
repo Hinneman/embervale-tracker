@@ -21,7 +21,9 @@ import {
   selectedLocation,
   selectLocation,
   shownLocations,
+  showUnexplored,
   stateOf,
+  unexploredFlameCount,
   visibleKinds,
   type ListMode,
 } from "./state.ts";
@@ -216,6 +218,11 @@ function Filters() {
           </button>
         ))}
       </div>
+      {unexploredFlameCount.value > 0 && (
+        <button class="chip justify-center" aria-pressed={showUnexplored.value} onClick={() => (showUnexplored.value = !showUnexplored.value)}>
+          {unexploredFlameCount.value === 1 ? "Show 1 flame" : `Show ${unexploredFlameCount.value} flames`} in unexplored areas
+        </button>
+      )}
     </div>
   );
 }

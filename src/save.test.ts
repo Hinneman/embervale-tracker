@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 
 import { flameLocations, locations } from "./locations.ts";
-import { readKnowledge } from "./save.ts";
+import { readFog, readKnowledge } from "./save.ts";
 
 const fixtures = new URL("fixtures/", import.meta.url);
 
@@ -45,5 +45,55 @@ describe("readKnowledge", () => {
     const save = await readFile(new URL("world5.ksd", fixtures));
 
     expect(() => readKnowledge(save)).toThrow(new Error("This file holds no character knowledge. It can be a world save. Select characterN.ksd."));
+  });
+});
+
+// Builds an SV2C save with one uncompressed block, laid out as readBlocks expects.
+function saveWithBlock(name: string, payload: Uint8Array): Uint8Array {
+  const headerLength = 0x30;
+  const entryLength = 20;
+  const blockOffset = headerLength + entryLength + name.length;
+  const save = new Uint8Array(blockOffset + 14 + payload.length);
+  const view = new DataView(save.buffer);
+  const writeAscii = (offset: number, text: string) =>
+    save.set(
+      [...text].map((character) => character.charCodeAt(0)),
+      offset,
+    );
+
+  writeAscii(0, "SV2C");
+  view.setUint32(0x28, headerLength - 40, true);
+  view.setUint32(0x2c, 1, true);
+  view.setUint32(headerLength, entryLength, true);
+  view.setUint32(headerLength + 4, name.length, true);
+  view.setUint32(headerLength + 8, blockOffset, true);
+  view.setUint32(headerLength + 12, 14 + payload.length, true);
+  writeAscii(headerLength + entryLength, name);
+  writeAscii(blockOffset, "S2BH");
+  save.set(payload, blockOffset + 14);
+  return save;
+}
+
+describe("readFog", () => {
+  test("SaveWithoutFog", async () => {
+    const save = await readFile(new URL("character0.ksd", fixtures));
+
+    expect(readFog(save)).toBeNull();
+  });
+
+  test("SaveWithFog", () => {
+    const size = 4;
+    const payload = new Uint8Array(13 + size * size);
+    payload.set(
+      [..."FGOW"].map((character) => character.charCodeAt(0)),
+      8,
+    );
+    payload[13 + 5] = 255;
+
+    const fog = readFog(saveWithBlock("fogofwar", payload));
+
+    expect(fog?.size).toBe(size);
+    expect(fog?.cells[5]).toBe(255);
+    expect(fog?.cells[0]).toBe(0);
   });
 });
