@@ -253,9 +253,7 @@ function DetailTiles() {
     for (let row = toTile(centerY - height / 2); row <= toTile(centerY + height / 2); row++) {
       const url = tileUrls[`./assets/tiles/${column}_${row}.webp`];
       if (url) {
-        tiles.push(
-          <image key={url} href={url} x={column * tileSize} y={row * tileSize} width={tileSize} height={tileSize} preserveAspectRatio="none" />,
-        );
+        tiles.push(<image key={url} href={url} x={column * tileSize} y={row * tileSize} width={tileSize} height={tileSize} preserveAspectRatio="none" />);
       }
     }
   }
@@ -502,6 +500,10 @@ export function MapView() {
         Map{" "}
         <a class="underline" href="https://enshrouded.wiki.gg/" target="_blank" rel="noopener">
           Enshrouded Wiki
+        </a>
+        {" · Based on "}
+        <a class="underline" href="https://github.com/quantumsheep/enshrouded-flames-finder" target="_blank" rel="noopener">
+          enshrouded-flames-finder
         </a>
       </div>
     </section>
