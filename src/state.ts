@@ -71,8 +71,9 @@ export function stateOf(location: MapLocation): LocationState {
   return ids.has(location.knowledgeId) ? "found" : "missing";
 }
 
-// Off by default: flames that are still missing on unexplored ground stay hidden, like in the game's fog.
-export const showUnexplored = signal(false);
+// On by default, so a region never looks complete while one of its flames is still under fog.
+// Turned off, missing flames on unexplored ground stay hidden, like in the game's fog.
+export const showUnexplored = signal(true);
 
 const isExplored = (location: MapLocation) => exploredIds.value === null || exploredIds.value.has(location.knowledgeId);
 
