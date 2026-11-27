@@ -19,8 +19,6 @@ In that folder, select a `characterN.ksd` file.
 
 On a shared PC with Steam Cloud on, each Steam account has its own `userdata` folder. With Steam Cloud off, all players on the PC share one save folder.
 
-More information: [Enshrouded save management](https://saraserenity.net/enshrouded/manage_saves.php?action=general#save_location).
-
 ## Development
 
 ```sh
