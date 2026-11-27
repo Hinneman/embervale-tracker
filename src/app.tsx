@@ -119,7 +119,7 @@ function SaveHelp() {
       <p class="mb-2">
         Load a <code>characterN.ksd</code> file. A <code>worldN.ksd</code> file does not hold character data.
       </p>
-      <ul class="mb-2 grid list-disc gap-1.5 pl-4">
+      <ul class="grid list-disc gap-1.5 pl-4">
         <li>
           <strong class="text-primary">Steam Cloud on (default):</strong> <code>&lt;Steam folder&gt;\userdata\&lt;YOUR_STEAM_ID&gt;\1203620\remote</code>, or
           download it from your{" "}
@@ -132,9 +132,6 @@ function SaveHelp() {
           <strong class="text-primary">Steam Cloud off:</strong> <code>%userprofile%\Saved Games\keen games\Enshrouded</code>
         </li>
       </ul>
-      <a href="https://saraserenity.net/enshrouded/manage_saves.php?action=general#save_location" target="_blank" rel="noreferrer">
-        More information
-      </a>
     </div>
   );
 }
