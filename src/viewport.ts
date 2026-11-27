@@ -34,21 +34,31 @@ export const viewBox = computed(() => {
 
 export const markerScale = computed(() => `scale(${view.value.width / frameSize.value.width})`);
 
+// The widest view still covers the whole frame with map, so no empty frame shows around it.
 export const clampWidth = (width: number) => {
   const frame = frameSize.peek();
-  const widestView = Math.max(mapSize, (mapSize * frame.width) / frame.height) * 1.1;
+  const widestView = mapSize * Math.min(1, frame.width / frame.height);
 
   return Math.min(widestView, Math.max(450, width));
 };
 
-const clampCoordinate = (coordinate: number) => Math.min(mapSize, Math.max(0, coordinate));
+// Keeps the view's edges inside the map.
+const clampCenter = (center: number, extent: number) => Math.min(mapSize - extent / 2, Math.max(extent / 2, center));
+
+function clampView(next: View): View {
+  const frame = frameSize.peek();
+  const width = clampWidth(next.width);
+  const height = (width * frame.height) / frame.width;
+
+  return {
+    centerX: clampCenter(next.centerX, width),
+    centerY: clampCenter(next.centerY, height),
+    width,
+  };
+}
 
 export function setView(next: View) {
-  view.value = {
-    centerX: clampCoordinate(next.centerX),
-    centerY: clampCoordinate(next.centerY),
-    width: clampWidth(next.width),
-  };
+  view.value = clampView(next);
 }
 
 export function fit(targets: readonly MapLocation[], padding: number): View {
@@ -58,11 +68,11 @@ export function fit(targets: readonly MapLocation[], padding: number): View {
   const [southEdge, northEdge] = [Math.min(...northValues), Math.max(...northValues)];
   const frame = frameSize.peek();
 
-  return {
+  return clampView({
     centerX: (westEdge + eastEdge) / 2,
     centerY: mapSize - (southEdge + northEdge) / 2,
     width: Math.max(eastEdge - westEdge + 2 * padding, ((northEdge - southEdge + 2 * padding) * frame.width) / frame.height),
-  };
+  });
 }
 
 export const homeView = () => fit(locations, 350);
