@@ -10,7 +10,6 @@ import { flameLocations, locations, locationsOfRegion, shortName, type LocationK
 import { MapView } from "./map.tsx";
 import {
   errorMessage,
-  forgetSave,
   foundFlameCount,
   foundIds,
   foundSpireCount,
@@ -87,15 +86,9 @@ function TopBar() {
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <CharacterButton />
-          {hasSave ? (
-            <button class="btn btn-outline" onClick={forgetSave}>
-              Reset loaded save
-            </button>
-          ) : (
-            <button class="btn btn-primary" onClick={pickSaveFile}>
-              Load save
-            </button>
-          )}
+          <button class={`btn ${hasSave ? "btn-outline" : "btn-primary"}`} onClick={pickSaveFile}>
+            Load save
+          </button>
           <button class="btn btn-outline btn-icon" popovertarget="save-help" aria-label="Where to find the save file">
             ?
           </button>

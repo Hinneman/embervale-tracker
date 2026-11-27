@@ -151,19 +151,6 @@ export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
   }
 }
 
-export function forgetSave() {
-  batch(() => {
-    foundIds.value = null;
-    exploredIds.value = null;
-    fogImage.value = null;
-    detectedSavePath.value = null;
-  });
-
-  for (const key of Object.values(storageKeys)) {
-    writeStored(key, null);
-  }
-}
-
 export function pickSaveFile() {
   const input = document.createElement("input");
 
