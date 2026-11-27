@@ -55,7 +55,7 @@ function CharacterRow({ save, saves }: { save: DetectedSave; saves: readonly Det
           <span class="truncate text-[15px] leading-5 font-semibold text-primary">{name}</span>
           <span class="truncate text-[13px] leading-4.5 text-muted">{details}</span>
         </span>
-        <span class="mono-caption text-right whitespace-nowrap" title={new Date(save.modified).toLocaleString()}>
+        <span class="eyebrow text-right whitespace-nowrap" title={new Date(save.modified).toLocaleString()}>
           Saved {lastSaved(save.modified)}
         </span>
       </button>
@@ -63,7 +63,7 @@ function CharacterRow({ save, saves }: { save: DetectedSave; saves: readonly Det
   );
 }
 
-// Lists the character saves the Windows app finds. Picking one loads it and closes the list.
+// Lists the character saves the desktop app finds. Picking one loads it and closes the list.
 export function CharacterList() {
   const saves = detectedSaves.value;
   // Without a loaded save there is nothing behind the list to go back to.
@@ -85,30 +85,27 @@ export function CharacterList() {
   }
 
   return (
-    <div
-      class="fixed inset-0 z-90 grid place-items-center bg-overlay p-4 backdrop-blur-sm"
-      onClick={(event) => canClose && event.target === event.currentTarget && close()}
-    >
+    <div class="fixed inset-0 z-90 grid place-items-center bg-overlay p-4" onClick={(event) => canClose && event.target === event.currentTarget && close()}>
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="character-list-title"
-        class="floating menu-in grid max-h-full w-full max-w-120 grid-rows-[auto_minmax(0,1fr)_auto] rounded-[20px]"
+        class="card card-accent menu-in grid max-h-full w-full max-w-120 grid-rows-[auto_minmax(0,1fr)_auto]"
       >
         <header class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-          <h2 id="character-list-title" class="title text-primary">
+          <h2 id="character-list-title" class="display text-[22px] leading-7">
             Choose a character
           </h2>
           {canClose && (
-            <button class="btn btn-ghost btn-sm btn-icon" aria-label="Close" onClick={close}>
+            <button class="btn btn-quiet btn-icon" aria-label="Close" onClick={close}>
               ✕
             </button>
           )}
         </header>
         {saves.length === 0 ? (
-          <p class="px-5 py-2 text-[13px] leading-4.5 text-muted">No character saves were found in the Steam or local save folders.</p>
+          <p class="px-5 py-2 text-sm leading-5 text-muted">No character saves were found in the Steam or local save folders.</p>
         ) : (
-          <ul class="grid content-start gap-1 overflow-y-auto px-2.5">
+          <ul class="grid content-start overflow-y-auto border-y border-line">
             {saves.map((save) => (
               <CharacterRow key={save.path} save={save} saves={saves} />
             ))}
@@ -116,7 +113,7 @@ export function CharacterList() {
         )}
         <footer class="flex justify-end px-5 pt-3 pb-5">
           <button
-            class="btn btn-ghost btn-sm"
+            class="btn btn-outline"
             onClick={() => {
               close();
               pickSaveFile();
@@ -142,7 +139,7 @@ export function CharacterButton() {
 
   return (
     <button
-      class={`btn btn-glass btn-sm gap-2 ${name ? "pl-1.5" : ""}`}
+      class={`btn btn-outline gap-2 ${name ? "pl-1.5" : ""}`}
       aria-haspopup="dialog"
       title="Switch character"
       onClick={() => (characterListOpen.value = true)}

@@ -71,8 +71,9 @@ export function stateOf(location: MapLocation): LocationState {
   return ids.has(location.knowledgeId) ? "found" : "missing";
 }
 
-// Off by default: flames that are still missing on unexplored ground stay hidden, like in the game's fog.
-export const showUnexplored = signal(false);
+// On by default, so a region never looks complete while one of its flames is still under fog.
+// Turned off, missing flames on unexplored ground stay hidden, like in the game's fog.
+export const showUnexplored = signal(true);
 
 const isExplored = (location: MapLocation) => exploredIds.value === null || exploredIds.value.has(location.knowledgeId);
 
@@ -147,19 +148,6 @@ export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
     writeStored(storageKeys.fogImage, image);
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error);
-  }
-}
-
-export function forgetSave() {
-  batch(() => {
-    foundIds.value = null;
-    exploredIds.value = null;
-    fogImage.value = null;
-    detectedSavePath.value = null;
-  });
-
-  for (const key of Object.values(storageKeys)) {
-    writeStored(key, null);
   }
 }
 
