@@ -66,6 +66,13 @@
 }
 
 @layer base {
+  /* A percentage chain instead of 100dvh: WebView2 does not always update dvh when the window resizes. */
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
   body {
     @apply bg-canvas font-sans antialiased;
     color: var(--text-secondary);
