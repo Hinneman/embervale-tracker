@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 
 import { characterListOpen, characterName, characters, detectedSaves, isDesktop, loadDetectedSave, sourceLabel, type DetectedSave } from "./desktop.ts";
 import { detectedSavePath, foundIds, pickSaveFile } from "./state.ts";
@@ -64,66 +64,84 @@ function CharacterRow({ save, saves }: { save: DetectedSave; saves: readonly Det
 }
 
 // Lists the character saves the desktop app finds. Picking one loads it and closes the list.
+// A modal <dialog> moves focus into the list, keeps it there, and returns it to the button that opened it.
 export function CharacterList() {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const saves = detectedSaves.value;
+  const open = characterListOpen.value;
   // Without a loaded save there is nothing behind the list to go back to.
   const canClose = foundIds.value !== null;
   const close = () => (characterListOpen.value = false);
 
   useEffect(() => {
-    if (!characterListOpen.value || !canClose) {
+    const dialog = dialogRef.current;
+    if (!dialog) {
       return;
     }
 
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [characterListOpen.value, canClose]);
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
 
-  if (!isDesktop || !characterListOpen.value) {
+  if (!isDesktop) {
     return null;
   }
 
   return (
-    <div class="fixed inset-0 z-90 grid place-items-center bg-overlay p-4" onClick={(event) => canClose && event.target === event.currentTarget && close()}>
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="character-list-title"
-        class="card card-accent menu-in grid max-h-full w-full max-w-120 grid-rows-[auto_minmax(0,1fr)_auto]"
-      >
-        <header class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-          <h2 id="character-list-title" class="display text-[22px] leading-7">
-            Choose a character
-          </h2>
-          {canClose && (
-            <button class="btn btn-quiet btn-icon" aria-label="Close" onClick={close}>
-              ✕
-            </button>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="character-list-title"
+      class="card card-accent menu-in m-auto max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-120 grid-rows-[auto_minmax(0,1fr)_auto] p-0 text-(--text-secondary) backdrop:bg-overlay open:grid"
+      // Escape fires cancel. It closes the list only when there is a save behind it.
+      onCancel={(event) => {
+        event.preventDefault();
+        if (canClose) {
+          close();
+        }
+      }}
+      // The dialog can also close without cancel, so the list state follows it.
+      onClose={close}
+      // A click on the backdrop lands on the dialog element itself.
+      onClick={(event) => canClose && event.target === event.currentTarget && close()}
+    >
+      {open && (
+        <>
+          <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+            <h2 id="character-list-title" class="display text-[22px] leading-7">
+              Choose a character
+            </h2>
+            {canClose && (
+              <button class="btn btn-quiet btn-icon" aria-label="Close" onClick={close}>
+                ✕
+              </button>
+            )}
+          </div>
+          {saves.length === 0 ? (
+            <p class="px-5 py-2 text-sm leading-5 text-muted">No character saves were found in the Steam or local save folders.</p>
+          ) : (
+            <ul class="grid content-start overflow-y-auto border-y border-line">
+              {saves.map((save) => (
+                <CharacterRow key={save.path} save={save} saves={saves} />
+              ))}
+            </ul>
           )}
-        </header>
-        {saves.length === 0 ? (
-          <p class="px-5 py-2 text-sm leading-5 text-muted">No character saves were found in the Steam or local save folders.</p>
-        ) : (
-          <ul class="grid content-start overflow-y-auto border-y border-line">
-            {saves.map((save) => (
-              <CharacterRow key={save.path} save={save} saves={saves} />
-            ))}
-          </ul>
-        )}
-        <footer class="flex justify-end px-5 pt-3 pb-5">
-          <button
-            class="btn btn-outline"
-            onClick={() => {
-              close();
-              pickSaveFile();
-            }}
-          >
-            Open a save file…
-          </button>
-        </footer>
-      </section>
-    </div>
+          <div class="flex justify-end px-5 pt-3 pb-5">
+            <button
+              class="btn btn-outline"
+              onClick={() => {
+                close();
+                pickSaveFile();
+              }}
+            >
+              Open a save file…
+            </button>
+          </div>
+        </>
+      )}
+    </dialog>
   );
 }
 
