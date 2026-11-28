@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { exploredIds as findExploredIds } from "./fog.ts";
 import { locations } from "./locations.ts";
 import type { FogMap } from "./save.ts";
-import { exploredIds, foundIds, isShown, showUnexplored, unexploredFlameCount } from "./state.ts";
+import { completeRegionCount, exploredIds, foundIds, isShown, regionProgress, showUnexplored, unexploredFlameCount } from "./state.ts";
 
 const find = (region: string, kind: string, number = 1) =>
   locations.find((location) => location.region === region && location.kind === kind && location.number === number)!;
@@ -71,5 +71,38 @@ describe("fog of war", () => {
       expect(isShown(kindlewastesMissingShrine)).toBe(true);
       expect(unexploredFlameCount.value).toBe(0);
     });
+  });
+});
+
+describe("region progress", () => {
+  const kindlewastesFlames = locations.filter((location) => location.region === "Kindlewastes" && location.kind !== "spire");
+  const progressOf = (region: string) => regionProgress.value.find((entry) => entry.region === region);
+
+  beforeEach(() => {
+    exploredIds.value = null;
+  });
+
+  test("counts flames only, not the spire", () => {
+    foundIds.value = new Set([kindlewastesLitShrine.knowledgeId, kindlewastesSpire.knowledgeId]);
+
+    expect(progressOf("Kindlewastes")).toEqual({ region: "Kindlewastes", found: 1, total: kindlewastesFlames.length });
+  });
+
+  test("leaves out the regions that have only a spire", () => {
+    expect(regionProgress.value.map((entry) => entry.region)).not.toContain("Low Meadows");
+    expect(regionProgress.value.map((entry) => entry.region)).not.toContain("Blackmire");
+  });
+
+  test("a region is done when all its flames are lit, even with its spire inactive", () => {
+    foundIds.value = new Set(kindlewastesFlames.map((location) => location.knowledgeId));
+
+    expect(completeRegionCount.value).toBe(1);
+  });
+
+  test("flames under fog still count toward the total", () => {
+    foundIds.value = new Set([kindlewastesLitShrine.knowledgeId]);
+    exploredIds.value = findExploredIds(fogWithExplored(kindlewastesLitShrine), locations);
+
+    expect(progressOf("Kindlewastes")?.total).toBe(kindlewastesFlames.length);
   });
 });

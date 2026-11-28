@@ -5,20 +5,26 @@ import flameIconUrl from "./assets/flame-shrine.png";
 import githubDarkUrl from "./assets/github-dark.svg";
 import githubWhiteUrl from "./assets/github-white.svg";
 import { CharacterButton, CharacterList } from "./characters.tsx";
+import { Gauge } from "./gauge.tsx";
 import { isMuted, KindIcon } from "./icons.tsx";
 import { flameLocations, locations, locationsOfRegion, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { MapView } from "./map.tsx";
 import {
   announcement,
+  completeRegionCount,
   errorMessage,
+  flameRegions,
   foundFlameCount,
   foundIds,
   foundSpireCount,
   listMode,
   loadSave,
   pickSaveFile,
+  regionPanelMinimized,
+  regionProgress,
   selectedLocation,
   selectLocation,
+  setRegionPanelMinimized,
   shownLocations,
   showUnexplored,
   stateOf,
@@ -26,6 +32,7 @@ import {
   visibleKinds,
   type ListMode,
 } from "./state.ts";
+import { fit, flyTo } from "./viewport.ts";
 
 const listModes: { value: ListMode; label: string }[] = [
   {
@@ -68,15 +75,94 @@ function Fraction({ part, total, spoken = `${part} of ${total}` }: { part: numbe
 }
 
 // A count with a progress bar. Without a save there is nothing found yet, so it shows only the total.
-function Meter({ label, found, total }: { label: string; found: number | null; total: number }) {
+function MeterContent({ label, found, total }: { label: string; found: number | null; total: number }) {
   return (
-    <div class="meter">
+    <>
       <div class="flex items-baseline justify-between gap-3">
         <span class="eyebrow">{label}</span>
         <span class="meter-value">{found === null ? total : <Fraction part={found} total={total} />}</span>
       </div>
       <div class="bar" style={{ "--progress": found === null ? 0 : found / total }} />
+    </>
+  );
+}
+
+function Meter(props: { label: string; found: number | null; total: number }) {
+  return (
+    <div class="meter">
+      <MeterContent {...props} />
     </div>
+  );
+}
+
+const regionPanelId = "region-panel";
+
+const showRegion = (region: string) =>
+  flyTo(
+    fit(
+      flameLocations.filter((location) => location.region === region),
+      250,
+    ),
+  );
+
+// Opens the region panel from the top bar's meter and puts focus on its heading.
+function openRegionPanel() {
+  setRegionPanelMinimized(false);
+  document.getElementById("region-panel-toggle")?.focus();
+}
+
+// Every region's lit flames as a ring, over the map's top left corner. It stays open while the player uses the map,
+// and folds down to its heading. Picking a region shows it on the map. Without a save there is no progress to show.
+function RegionPanel() {
+  if (foundIds.value === null) {
+    return null;
+  }
+
+  const minimized = regionPanelMinimized.value;
+
+  return (
+    <section class="region-panel card card-accent" aria-labelledby="region-panel-heading">
+      <h2 id="region-panel-heading">
+        <button
+          id="region-panel-toggle"
+          class="region-panel-toggle"
+          aria-expanded={!minimized}
+          aria-controls={regionPanelId}
+          onClick={() => setRegionPanelMinimized(!minimized)}
+        >
+          <span class="display text-[14px]">Regions</span>
+          <span class="eyebrow tabular-nums">
+            <Fraction part={completeRegionCount.value} total={flameRegions.length} spoken={`${completeRegionCount.value} of ${flameRegions.length} done`} />
+          </span>
+          <svg
+            class={`size-4 transition-transform ${minimized ? "rotate-180" : ""}`}
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 10l4-4 4 4" />
+          </svg>
+          <span class="sr-only">{minimized ? ", minimized" : ""}</span>
+        </button>
+      </h2>
+      <ul id={regionPanelId} class="grid border-t border-line p-1.5" hidden={minimized}>
+        {regionProgress.value.map(({ region, found, total }) => (
+          <li key={region}>
+            <button class="region-row" onClick={() => showRegion(region)}>
+              <Gauge found={found} total={total} size={24} />
+              <span class="region-name">{region}</span>
+              <span class="eyebrow tabular-nums">
+                <Fraction part={found} total={total} spoken={`${found} of ${total} lit`} />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -93,9 +179,16 @@ function TopBar() {
         </h1>
       </div>
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div class="flex gap-6">
+        <div class="flex flex-wrap gap-x-6 gap-y-3">
           <Meter label={hasSave ? "Flames lit" : "Flames"} found={hasSave ? foundFlameCount.value : null} total={flameLocations.length} />
           <Meter label={hasSave ? "Spires active" : "Spires"} found={hasSave ? foundSpireCount.value : null} total={spireCount} />
+          {hasSave ? (
+            <button class="meter meter-button" aria-controls={regionPanelId} aria-expanded={!regionPanelMinimized.value} onClick={openRegionPanel}>
+              <MeterContent label="Regions done" found={completeRegionCount.value} total={flameRegions.length} />
+            </button>
+          ) : (
+            <Meter label="Regions" found={null} total={flameRegions.length} />
+          )}
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <CharacterButton />
@@ -353,8 +446,9 @@ export function App() {
     <div class="grid h-dvh grid-rows-[auto_minmax(0,1fr)] max-md:h-auto">
       <TopBar />
       <main class="grid min-h-0 md:grid-cols-[340px_minmax(0,1fr)]">
-        <div class="max-md:h-[64vh] max-md:min-h-90">
+        <div class="relative max-md:h-[64vh] max-md:min-h-90">
           <MapView />
+          <RegionPanel />
         </div>
         <Sidebar />
       </main>

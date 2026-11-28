@@ -1,7 +1,7 @@
 import { batch, computed, signal } from "@preact/signals";
 
 import { fogImage as drawFogImage, exploredIds as findExploredIds } from "./fog.ts";
-import { flameLocations, locations, orderedLocations, shortName, type LocationKind, type MapLocation } from "./locations.ts";
+import { flameLocations, locations, orderedLocations, regions, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { readFog, readKnowledge } from "./save.ts";
 import { flyTo, toMapX, toMapY, view } from "./viewport.ts";
 
@@ -13,6 +13,7 @@ const storageKeys = {
   found: "found",
   explored: "explored",
   fogImage: "fogImage",
+  regionPanelMinimized: "regionPanelMinimized",
 };
 
 function readStored(key: string): unknown {
@@ -58,6 +59,13 @@ export const announcement = signal("");
 // The path of a save the desktop app found on its own. A save the player picks or drops has none.
 export const detectedSavePath = signal<string | null>(null);
 export const listMode = signal<ListMode>("all");
+// The region panel on the map, folded down to its heading. Remembered for the next visit.
+export const regionPanelMinimized = signal(readStored(storageKeys.regionPanelMinimized) === true);
+
+export function setRegionPanelMinimized(minimized: boolean) {
+  regionPanelMinimized.value = minimized;
+  writeStored(storageKeys.regionPanelMinimized, minimized || null);
+}
 export const visibleKinds = signal<Record<LocationKind, boolean>>({
   shrine: true,
   sanctum: true,
@@ -95,6 +103,31 @@ export const stepLocations = computed(() => shownLocations.value.filter((locatio
 export const foundFlameCount = computed(() => flameLocations.filter((location) => stateOf(location) === "found").length);
 
 export const foundSpireCount = computed(() => locations.filter((location) => location.kind === "spire" && stateOf(location) === "found").length);
+
+export type RegionProgress = {
+  region: string;
+  found: number;
+  total: number;
+};
+
+// The regions with flames. Low Meadows and Blackmire have only a spire, so they have no progress to show.
+export const flameRegions = regions.filter((region) => flameLocations.some((location) => location.region === region));
+
+// How many of each region's flames are lit. Spires do not count: the Spires meter covers them.
+// Flames under fog count too, so a region never looks complete while one is still hidden.
+export const regionProgress = computed<RegionProgress[]>(() =>
+  flameRegions.map((region) => {
+    const flames = flameLocations.filter((location) => location.region === region);
+
+    return {
+      region,
+      found: flames.filter((location) => stateOf(location) === "found").length,
+      total: flames.length,
+    };
+  }),
+);
+
+export const completeRegionCount = computed(() => regionProgress.value.filter(({ found, total }) => found === total).length);
 
 const stateWords: Record<LocationState, string> = {
   missing: "missing",
