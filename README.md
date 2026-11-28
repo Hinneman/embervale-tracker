@@ -4,6 +4,8 @@ See which Flame Shrines, Flame Sanctums and Ancient Spires you still have to fin
 
 Embervale Tracker shows a map of Embervale with every Flame Shrine, Flame Sanctum and Ancient Spire. Load your save and it marks the ones you have found and the ones you are still missing, with your own fog of war on the map.
 
+![Embervale Tracker with a save loaded: the list of locations per region on the left, the map of Embervale with every flame and spire on the right.](docs/screenshot.png)
+
 Embervale Tracker is based on [enshrouded-flames-finder](https://github.com/quantumsheep/enshrouded-flames-finder) by quantumsheep, and is licensed under the same Apache License 2.0.
 
 ## Why does this project exist?
