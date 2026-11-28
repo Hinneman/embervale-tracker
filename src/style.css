@@ -184,6 +184,8 @@
     display: grid;
     gap: 5px;
     min-width: 112px;
+    /* On narrow screens the meters wrap as a whole, not their label or count. */
+    white-space: nowrap;
   }
 
   .meter-value {
@@ -207,6 +209,115 @@
       background: linear-gradient(90deg, var(--bronze), var(--ember-bright));
       box-shadow: 0 0 8px var(--ember);
       transition: width 400ms var(--ease-out);
+    }
+  }
+
+  /* A meter that opens a popover. The negative margin keeps it in line with the other meters. */
+  .meter-button {
+    margin: -6px -8px;
+    padding: 6px 8px;
+    border-radius: 3px;
+    text-align: left;
+    transition: background-color var(--duration-fast) ease;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  /* A progress ring, drawn by GaugeRing. */
+  .gauge {
+    --gauge-track: var(--line-strong);
+    --gauge-fill: var(--ember);
+    --gauge-done: var(--bronze);
+    --gauge-check: var(--ember-foreground);
+
+    & circle {
+      fill: none;
+      stroke-width: 3px;
+    }
+
+    & .gauge-track {
+      stroke: var(--gauge-track);
+    }
+
+    & .gauge-fill {
+      stroke: var(--gauge-fill);
+      stroke-linecap: round;
+      transition: stroke-dasharray 400ms var(--ease-out);
+    }
+
+    /* Empty, the round cap would still draw a dot at the top. */
+    & .gauge-fill[stroke-dasharray^="0 "] {
+      stroke: none;
+    }
+
+    &.is-complete .gauge-track {
+      fill: var(--gauge-done);
+      stroke: var(--gauge-done);
+    }
+
+    &.is-complete .gauge-fill {
+      stroke: none;
+    }
+
+    & .gauge-check {
+      fill: none;
+      stroke: var(--gauge-check);
+      stroke-width: 2px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+
+  /* Over the map's top left corner. The width leaves room for the zoom buttons on the right. */
+  .region-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+    width: min(272px, calc(100% - 72px));
+    background: color-mix(in oklab, var(--bg-sheet) 94%, transparent);
+    color: var(--text-secondary);
+  }
+
+  .region-panel-toggle {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px 0 14px;
+    color: var(--text-muted);
+    text-align: left;
+    transition: color var(--duration-fast) ease;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+
+  .region-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 8px;
+    border-radius: 3px;
+    text-align: left;
+    transition: background-color var(--duration-fast) ease;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    & .region-name {
+      font: 600 13px/16px var(--font-display);
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
     }
   }
 
@@ -532,6 +643,21 @@
   stroke-opacity: 0.7;
   paint-order: stroke;
   pointer-events: none;
+}
+
+/* On the map the ring keeps the markers' palette, which is the same in both themes. */
+.region-gauge {
+  /* A dark track, so the unfilled part reads on light ground too. */
+  --gauge-track: #141008a6;
+  --gauge-fill: #ffa257;
+  --gauge-done: #f0863a;
+  --gauge-check: var(--marker-edge);
+  pointer-events: none;
+  filter: drop-shadow(0 0 1.5px var(--marker-edge));
+
+  & circle {
+    stroke-width: 3.5px;
+  }
 }
 
 .region-border {

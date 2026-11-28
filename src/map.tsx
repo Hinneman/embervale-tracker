@@ -3,10 +3,11 @@ import type { RefObject, TargetedKeyboardEvent, TargetedPointerEvent, TargetedWh
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
 import mapImageUrl from "./assets/map.webp";
+import { GaugeRing } from "./gauge.tsx";
 import { isMuted, KindShape } from "./icons.tsx";
 import { isFlame, locations, locationsOfRegion, regions, shortName, type MapLocation } from "./locations.ts";
 import { regionBorders } from "./regions.ts";
-import { fogImage, foundIds, isShown, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
+import { fogImage, foundIds, isShown, regionProgress, selectedLocation, selectLocation, stateOf, stepBy, stepLocations } from "./state.ts";
 import {
   clampWidth,
   flyTo,
@@ -272,9 +273,13 @@ function FogLayer() {
 }
 
 function RegionLabels() {
+  // Without a save there is no progress, so the labels show only the names.
+  const progress = foundIds.value === null ? null : new Map(regionProgress.value.map((entry) => [entry.region, entry]));
+
   return (
     <g>
       {regions.map((region) => {
+        const regionGauge = progress?.get(region);
         // The label sits in the middle of the region's flames. A region with only a spire puts it above the spire marker.
         const flames = locationsOfRegion(region).filter(isFlame);
         const regionLocations = flames.length ? flames : locationsOfRegion(region);
@@ -288,6 +293,11 @@ function RegionLabels() {
               <text class="region-label" text-anchor="middle" y={labelY}>
                 {region}
               </text>
+              {regionGauge && (
+                <g transform={`translate(0 ${labelY + 15})`}>
+                  <GaugeRing class="region-gauge" found={regionGauge.found} total={regionGauge.total} radius={8.5} />
+                </g>
+              )}
             </g>
           </g>
         );
