@@ -337,7 +337,8 @@ function Sidebar() {
   return (
     <aside class="flex min-h-0 flex-col border-line bg-sheet max-md:max-h-130 max-md:border-t md:order-first md:border-r" aria-label="Locations">
       <Filters />
-      <div class="min-h-0 flex-1 overflow-y-auto pb-2">
+      {/* Relative, so the absolutely placed sr-only text in the rows stays inside the scroller instead of stretching the page. */}
+      <div class="relative min-h-0 flex-1 overflow-y-auto pb-2">
         {errorMessage.value && (
           <p role="alert" class="m-3 border-l-2 border-danger bg-(--danger-soft) px-3 py-2.5 text-sm leading-5 font-medium text-danger">
             {errorMessage}
@@ -445,7 +446,7 @@ function Dropzone() {
 
 export function App() {
   return (
-    <div class="grid h-dvh grid-rows-[auto_minmax(0,1fr)] max-md:h-auto">
+    <div class="grid h-full grid-rows-[auto_minmax(0,1fr)] max-md:h-auto">
       <TopBar />
       <main class="grid min-h-0 md:grid-cols-[340px_minmax(0,1fr)]">
         <div class="relative max-md:h-[64vh] max-md:min-h-90">
