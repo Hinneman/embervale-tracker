@@ -546,7 +546,6 @@
   & .shape {
     transform-box: fill-box;
     transform-origin: center;
-    filter: url(#marker-shadow);
     transition: transform 160ms var(--ease-out);
   }
 

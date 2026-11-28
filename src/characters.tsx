@@ -52,7 +52,7 @@ function CharacterRow({ save, saves }: { save: DetectedSave; saves: readonly Det
       <button class="character-row" aria-current={detectedSavePath.value === save.path} title={save.path} onClick={() => void loadDetectedSave(save)}>
         <CharacterBadge name={name} class="size-10 text-base" />
         <span class="grid min-w-0">
-          <span class="truncate text-[15px] leading-5 font-semibold text-primary">{name}</span>
+          <span class="truncate text-[15px] leading-5 font-bold text-primary">{name}</span>
           <span class="truncate text-[13px] leading-4.5 text-muted">{details}</span>
         </span>
         <span class="eyebrow text-right whitespace-nowrap" title={new Date(save.modified).toLocaleString()}>
