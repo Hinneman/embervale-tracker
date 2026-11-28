@@ -40,11 +40,12 @@ const characterModified = new Map<string, number>();
 
 const readSaveFile = async (path: string) => new Uint8Array(await tauri!.core.invoke<ArrayBuffer>("read_save", { path }));
 
-export async function loadDetectedSave(save: DetectedSave) {
+// A quiet load is a reload after the game saved, which is announced only when the counts changed.
+export async function loadDetectedSave(save: DetectedSave, quiet = false) {
   detectedSavePath.value = save.path;
   loadedModified = save.modified;
   characterListOpen.value = false;
-  await loadSaveBytes(() => readSaveFile(save.path));
+  await loadSaveBytes(() => readSaveFile(save.path), quiet);
 }
 
 async function readCharacters(saves: readonly DetectedSave[]) {
@@ -86,7 +87,7 @@ async function refreshSaves() {
 
   const loaded = saves.find((save) => save.path === detectedSavePath.peek());
   if (loaded && loaded.modified > loadedModified) {
-    await loadDetectedSave(loaded);
+    await loadDetectedSave(loaded, true);
   }
 }
 
