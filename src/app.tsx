@@ -9,6 +9,7 @@ import { isMuted, KindIcon } from "./icons.tsx";
 import { flameLocations, locations, locationsOfRegion, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { MapView } from "./map.tsx";
 import {
+  announcement,
   errorMessage,
   foundFlameCount,
   foundIds,
@@ -54,13 +55,25 @@ const kindToggles: { kind: LocationKind; label: string }[] = [
 
 const spireCount = locations.length - flameLocations.length;
 
+// "5 / 14" on screen. Screen readers say "5 of 14" instead of "5 slash 14".
+function Fraction({ part, total, spoken = `${part} of ${total}` }: { part: number; total: number; spoken?: string }) {
+  return (
+    <>
+      <span aria-hidden="true">
+        {part} / {total}
+      </span>
+      <span class="sr-only">{spoken}</span>
+    </>
+  );
+}
+
 // A count with a progress bar. Without a save there is nothing found yet, so it shows only the total.
 function Meter({ label, found, total }: { label: string; found: number | null; total: number }) {
   return (
     <div class="meter">
       <div class="flex items-baseline justify-between gap-3">
         <span class="eyebrow">{label}</span>
-        <span class="meter-value">{found === null ? total : `${found} / ${total}`}</span>
+        <span class="meter-value">{found === null ? total : <Fraction part={found} total={total} />}</span>
       </div>
       <div class="bar" style={{ "--progress": found === null ? 0 : found / total }} />
     </div>
@@ -214,7 +227,7 @@ function RegionHeading({ region, rowCount }: { region: string; rowCount: number 
       <span class="flex items-baseline justify-between gap-3">
         <span class="region-name">{region}</span>
         <span class="eyebrow tabular-nums">
-          {found} / {regionLocations.length}
+          <Fraction part={found} total={regionLocations.length} spoken={`${found} of ${regionLocations.length} found`} />
         </span>
       </span>
       <span class="bar" style={{ "--progress": regionLocations.length ? found / regionLocations.length : 0 }} />
@@ -347,6 +360,10 @@ export function App() {
       </main>
       <CharacterList />
       <Dropzone />
+      {/* Always in the page, so screen readers pick up each new message. */}
+      <p class="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </p>
     </div>
   );
 }

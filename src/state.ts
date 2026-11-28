@@ -1,7 +1,7 @@
 import { batch, computed, signal } from "@preact/signals";
 
 import { fogImage as drawFogImage, exploredIds as findExploredIds } from "./fog.ts";
-import { flameLocations, locations, orderedLocations, type LocationKind, type MapLocation } from "./locations.ts";
+import { flameLocations, locations, orderedLocations, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { readFog, readKnowledge } from "./save.ts";
 import { flyTo, toMapX, toMapY, view } from "./viewport.ts";
 
@@ -53,6 +53,8 @@ export const exploredIds = signal<ReadonlySet<number> | null>(readStoredIds(stor
 export const fogImage = signal<string | null>(readStoredImage());
 export const selectedLocation = signal<MapLocation | null>(null);
 export const errorMessage = signal("");
+// Read out by screen readers through a polite live region: the selected location and the result of loading a save.
+export const announcement = signal("");
 // The path of a save the desktop app found on its own. A save the player picks or drops has none.
 export const detectedSavePath = signal<string | null>(null);
 export const listMode = signal<ListMode>("all");
@@ -94,8 +96,18 @@ export const foundFlameCount = computed(() => flameLocations.filter((location) =
 
 export const foundSpireCount = computed(() => locations.filter((location) => location.kind === "spire" && stateOf(location) === "found").length);
 
+const stateWords: Record<LocationState, string> = {
+  missing: "missing",
+  found: "found",
+  unknown: "not checked",
+};
+
 export function selectLocation(location: MapLocation | null, fly: boolean) {
   selectedLocation.value = location;
+
+  if (location) {
+    announcement.value = `${shortName(location)}, ${location.region}, ${stateWords[stateOf(location)]}`;
+  }
 
   if (fly && location) {
     flyTo({
@@ -124,8 +136,12 @@ export async function loadSave(file: File) {
   await loadSaveBytes(async () => new Uint8Array(await file.arrayBuffer()));
 }
 
+// The last load's counts, so a reload the player did not start is announced only when something changed.
+let loadedSummary = "";
+
 // Takes a reader, so a save that cannot be read shows its error the same way as a damaged save.
-export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
+// A quiet load is a reload after the game saved: it is announced only when the counts changed.
+export async function loadSaveBytes(read: () => Promise<Uint8Array>, quiet = false) {
   errorMessage.value = "";
 
   try {
@@ -142,6 +158,13 @@ export async function loadSaveBytes(read: () => Promise<Uint8Array>) {
       fogImage.value = image;
       selectedLocation.value = null;
     });
+
+    const spireTotal = locations.length - flameLocations.length;
+    const summary = `${foundFlameCount.peek()} of ${flameLocations.length} flames lit, ${foundSpireCount.peek()} of ${spireTotal} spires active`;
+    if (!quiet || summary !== loadedSummary) {
+      announcement.value = `Save loaded: ${summary}.`;
+    }
+    loadedSummary = summary;
 
     writeStored(storageKeys.found, [...ids]);
     writeStored(storageKeys.explored, explored && [...explored]);

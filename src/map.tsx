@@ -364,7 +364,10 @@ function Popover() {
   const isAlone = steps.length < 2 && position >= 0;
 
   return (
-    <div class="card card-accent menu-in absolute bottom-3 left-3 z-3 grid w-[min(340px,calc(100%-24px))] gap-3 p-4">
+    <section
+      aria-label={`${shortName(selected)}, ${selected.region}`}
+      class="card card-accent menu-in absolute bottom-3 left-3 z-3 grid w-[min(340px,calc(100%-24px))] gap-3 p-4"
+    >
       <div class="flex items-center justify-between gap-2">
         <span class="eyebrow">{selected.region}</span>
         <button class="btn btn-quiet btn-icon -my-1.5 -mr-2" aria-label="Close" onClick={() => selectLocation(null, false)}>
@@ -387,12 +390,23 @@ function Popover() {
         <button class="btn btn-outline" disabled={isAlone} onClick={() => stepBy(-1)}>
           Previous
         </button>
-        <span class="eyebrow tabular-nums">{position >= 0 ? `${position + 1} / ${steps.length}` : ""}</span>
+        <span class="eyebrow tabular-nums">
+          {position >= 0 && (
+            <>
+              <span aria-hidden="true">
+                {position + 1} / {steps.length}
+              </span>
+              <span class="sr-only">
+                {position + 1} of {steps.length}
+              </span>
+            </>
+          )}
+        </span>
         <button class="btn btn-primary" disabled={isAlone} onClick={() => stepBy(1)}>
           Next{foundIds.value ? " missing" : ""}
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -447,7 +461,7 @@ export function MapView() {
     <section
       ref={frameRef}
       tabIndex={0}
-      aria-label="Map. Drag to pan. Use the plus and minus keys to zoom."
+      aria-label="Map. Drag or use the arrow keys to move it, plus and minus to zoom, and 0 to show all locations."
       class="relative h-full overflow-hidden bg-frame focus-visible:shadow-[inset_0_0_0_2px_var(--ember)]"
       onKeyDown={handleKeyDown}
     >

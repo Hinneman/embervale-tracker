@@ -16,8 +16,11 @@
   --text-primary: light-dark(#24190f, #f2e8d8);
   --text-secondary: light-dark(#4a3a2a, #cdbfaa);
   --text-muted: light-dark(#7a6651, #928471);
-  --ember: light-dark(#bf541b, #f0863a);
+  /* The light ember is dark enough for 4.5:1 with --ember-foreground and as link text on --bg-sheet. */
+  --ember: light-dark(#b54f19, #f0863a);
   --ember-bright: light-dark(#d9661f, #ffa257);
+  /* A hovered primary button. In light mode it gets darker, so its text keeps its contrast. */
+  --ember-hover: light-dark(#a04515, #ffa257);
   --ember-soft: light-dark(#bf541b1a, #f0863a21);
   --ember-foreground: light-dark(#fffaf0, #1d1007);
   --danger-text: light-dark(#a3241b, #ff7a66);
@@ -133,8 +136,8 @@
     box-shadow: 0 0 18px -6px var(--ember);
 
     &:hover:not(:disabled) {
-      background: var(--ember-bright);
-      border-color: var(--ember-bright);
+      background: var(--ember-hover);
+      border-color: var(--ember-hover);
     }
   }
 
@@ -401,6 +404,11 @@
 
     &.is-found {
       color: var(--text-muted);
+    }
+
+    /* The selected row's tinted background is too dark for the muted text. */
+    &.is-found[aria-current="true"] {
+      color: var(--text-secondary);
     }
   }
 
