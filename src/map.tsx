@@ -315,14 +315,8 @@ function Markers({ hover, moved }: { hover: Signal<Hover | null>; moved: RefObje
     }
   };
 
-  // An SVG filter, because WebKit ignores CSS filter functions on SVG elements.
   return (
     <g>
-      <defs>
-        <filter id="marker-shadow">
-          <feDropShadow dy="1" stdDeviation="0.75" flood-opacity="0.6" />
-        </filter>
-      </defs>
       {ordered.map((location) => {
         const state = stateOf(location);
         const classes = ["marker", state, location === selected && "selected", !isShown(location) && location !== selected && "hidden-marker"];
