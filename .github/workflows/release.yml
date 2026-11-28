@@ -26,6 +26,7 @@ jobs:
       - run: bun run test
 
   # One draft release, which every build adds its installers to. Publish it by hand after checking it.
+  # SignPath Foundation requires the code signing policy on every download page, so the notes end with it.
   release:
     needs: check
     runs-on: ubuntu-latest
@@ -38,11 +39,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          notes=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" --jq .body)
+          policy="## Code signing policy
+
+          Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org). See the [code signing policy](https://github.com/$GITHUB_REPOSITORY#code-signing-policy)."
           id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
             -f tag_name="$GITHUB_REF_NAME" \
             -f name="Embervale Tracker $GITHUB_REF_NAME" \
             -F draft=true \
-            -F generate_release_notes=true \
+            -f body="$notes
+
+          $policy" \
             --jq .id)
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
