@@ -7,7 +7,7 @@ import githubWhiteUrl from "./assets/github-white.svg";
 import { CharacterButton, CharacterList } from "./characters.tsx";
 import { Gauge } from "./gauge.tsx";
 import { isMuted, KindIcon } from "./icons.tsx";
-import { flameLocations, locations, locationsOfRegion, shortName, type LocationKind, type MapLocation } from "./locations.ts";
+import { flameLocations, locations, shortName, type LocationKind, type MapLocation } from "./locations.ts";
 import { MapView } from "./map.tsx";
 import {
   announcement,
@@ -299,7 +299,8 @@ function Filters() {
   );
 }
 
-// The region's name with how many of its shown kinds are found.
+// The region's name with how many of its flames are lit: the same count as its ring on the map and in the region panel,
+// whatever the filters show. Without a save it shows how many rows it lists. A region with only a spire has no flames to count.
 function RegionHeading({ region, rowCount }: { region: string; rowCount: number }) {
   if (foundIds.value === null) {
     return (
@@ -312,18 +313,19 @@ function RegionHeading({ region, rowCount }: { region: string; rowCount: number 
     );
   }
 
-  const regionLocations = locationsOfRegion(region).filter((location) => visibleKinds.value[location.kind]);
-  const found = regionLocations.filter((location) => stateOf(location) === "found").length;
+  const progress = regionProgress.value.find((entry) => entry.region === region);
 
   return (
     <h2 class="region-heading">
       <span class="flex items-baseline justify-between gap-3">
         <span class="region-name">{region}</span>
-        <span class="eyebrow tabular-nums">
-          <Fraction part={found} total={regionLocations.length} spoken={`${found} of ${regionLocations.length} found`} />
-        </span>
+        {progress && (
+          <span class="eyebrow tabular-nums">
+            <Fraction part={progress.found} total={progress.total} spoken={`${progress.found} of ${progress.total} flames lit`} />
+          </span>
+        )}
       </span>
-      <span class="bar" style={{ "--progress": regionLocations.length ? found / regionLocations.length : 0 }} />
+      {progress && <span class="bar" style={{ "--progress": progress.found / progress.total }} />}
     </h2>
   );
 }
