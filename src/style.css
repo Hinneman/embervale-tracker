@@ -58,7 +58,7 @@
 
 @theme {
   --font-sans: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
-  --font-display: Cinzel, "Trajan Pro", Georgia, serif;
+  --font-display: "Cinzel Variable", Cinzel, "Trajan Pro", Georgia, serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
