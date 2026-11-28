@@ -31,14 +31,13 @@ The desktop app finds your saves on its own and updates the map each time the ga
 1. Open the **[latest release](https://github.com/Hinneman/embervale-tracker/releases/latest)**.
 2. Under **Assets**, download the file for your computer:
 
-   | Your computer       | File to download                                        |
-   | ------------------- | ------------------------------------------------------- |
-   | Windows             | `Embervale.Tracker_…_x64-setup.exe` (installer)         |
-   | Windows, no install | `embervale-tracker_…_x64-portable.exe` (runs as it is)  |
-   | Linux               | `Embervale.Tracker_…_amd64.AppImage` (any distribution) |
-   | Debian or Ubuntu    | `Embervale.Tracker_…_amd64.deb`                         |
+   | Your computer    | File to download                                        |
+   | ---------------- | ------------------------------------------------------- |
+   | Windows          | `embervale-tracker_…_x64-portable.exe`                  |
+   | Linux            | `Embervale.Tracker_…_amd64.AppImage` (any distribution) |
+   | Debian or Ubuntu | `Embervale.Tracker_…_amd64.deb`                         |
 
-3. Open the file you downloaded.
+3. Open the file you downloaded. On Windows there is nothing to install: the exe is the app. Keep it wherever you like, and delete it when you no longer need it.
 
 **Windows shows "Windows protected your PC"?** The app is not signed with a paid certificate, so Windows does not know it yet. Click **More info**, then **Run anyway**.
 
@@ -107,12 +106,12 @@ To build it yourself, install [Rust](https://rustup.rs) (and on Linux the [Tauri
 
 ```sh
 bun run tauri dev    # opens the app window with live reload
-bun run tauri build  # writes the installers to src-tauri/target/release/bundle
+bun run tauri build  # Windows: the exe in src-tauri/target/release. Linux: also the AppImage and .deb in src-tauri/target/release/bundle
 ```
 
 ### Releasing
 
-The [release workflow](.github/workflows/release.yml) runs on tags that start with `v`. It checks that the tag matches the app version, runs the checks and tests, builds the Windows and Linux installers and attaches them to a draft GitHub release. The same tag deploys the website.
+The [release workflow](.github/workflows/release.yml) runs on tags that start with `v`. It checks that the tag matches the app version, runs the checks and tests, builds the Windows exe and the Linux AppImage and .deb, and attaches them to a draft GitHub release. The same tag deploys the website.
 
 1. Set the new version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, and commit.
 2. Tag and push: `git tag v0.2.0` and `git push origin v0.2.0`.
@@ -129,7 +128,7 @@ docker run -p 8080:80 embervale-tracker
 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
-The Windows installer and the portable exe are signed only when they are built from this repository by the [release workflow](.github/workflows/release.yml) on GitHub Actions. Every release is approved by hand before it is signed.
+The Windows exe is signed only when they are built from this repository by the [release workflow](.github/workflows/release.yml) on GitHub Actions. Every release is approved by hand before it is signed.
 
 Team roles:
 
