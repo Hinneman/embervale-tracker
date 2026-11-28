@@ -111,11 +111,10 @@ bun run tauri build  # Windows: the exe in src-tauri/target/release. Linux: also
 
 ### Releasing
 
-The [release workflow](.github/workflows/release.yml) runs on tags that start with `v`. It checks that the tag matches the app version, runs the checks and tests, builds the Windows exe and the Linux AppImage and .deb, and attaches them to a draft GitHub release. The same tag deploys the website.
+The [release workflow](.github/workflows/release.yml) runs on tags that start with `v`. It checks that the tag matches the app version, runs the checks and tests, builds the Windows exe and the Linux AppImage and .deb, and attaches them to a draft GitHub release. When both builds succeed, it publishes the release. If a build fails, the release stays a draft under **Releases**. The same tag deploys the website.
 
 1. Set the new version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, and commit.
 2. Tag and push: `git tag v0.2.0` and `git push origin v0.2.0`.
-3. When the workflow is done, check the draft under **Releases** and publish it.
 
 ### Docker
 

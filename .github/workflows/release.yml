@@ -25,7 +25,8 @@ jobs:
       - run: bun run check
       - run: bun run test
 
-  # One draft release, which every build adds its files to. Publish it by hand after checking it.
+  # One draft release, which every build adds its files to. It stays a draft until the publish job below,
+  # so it never goes public with only some of its files.
   # SignPath Foundation requires the code signing policy on every download page, so the notes end with it.
   release:
     needs: check
@@ -97,3 +98,15 @@ jobs:
           portable="embervale-tracker_${GITHUB_REF_NAME#v}_x64-portable.exe"
           cp src-tauri/target/release/embervale-tracker.exe "$portable"
           gh release upload "$GITHUB_REF_NAME" "$portable"
+
+  # Publishes the draft once both builds have attached their files. If a build fails, this job does not run
+  # and the release stays a draft.
+  publish:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.release.outputs.id }}" -F draft=false --silent
